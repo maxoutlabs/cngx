@@ -1,10 +1,12 @@
-"""Legacy ad hoc multi-metric outlier rule (pre-upgrade).
+"""Legacy ad hoc rules retained for benchmark comparisons.
 
-Retained only for benchmark comparisons measuring false-positive rate
-improvement vs Benjamini-Hochberg + Fisher batch testing.
+Measures false-positive rate improvement vs upgraded CCT/KSWIN/MDDM engine.
 """
 
 from __future__ import annotations
+
+import numpy as np
+from scipy import stats
 
 from cogscope.calibration.profiles import (
     LENGTH_METRICS,
@@ -12,6 +14,10 @@ from cogscope.calibration.profiles import (
     get_adaptive_thresholds,
 )
 from cogscope.core.models import BehavioralFingerprint
+from cogscope.drift.batch import (
+    BATCH_METRICS,
+    benjamini_hochberg,
+)
 
 
 def legacy_multimetric_outlier(
@@ -76,3 +82,44 @@ def legacy_batch_population_alert(
         except Exception:
             pass
     return significant >= 2
+
+
+def fisher_combine(p_values: list[float]) -> tuple[float, float]:
+    """Fisher's method for combining p-values (assumes independence)."""
+    if not p_values:
+        return 0.0, 1.0
+    clipped = [max(min(p, 1.0 - 1e-16), 1e-16) for p in p_values]
+    stat, combined_p = stats.combine_pvalues(clipped, method="fisher")
+    return float(stat), float(combined_p)
+
+
+def legacy_fisher_batch_alert(
+    baseline_fps: list[BehavioralFingerprint],
+    current_fps: list[BehavioralFingerprint],
+    alpha: float = 0.05,
+    metrics: tuple[str, ...] = BATCH_METRICS,
+) -> bool:
+    """Pre-CCT batch rule: Mann-Whitney + BH + Fisher omnibus (independence assumed)."""
+    if len(baseline_fps) < 3 or len(current_fps) < 3:
+        return False
+
+    raw_p: dict[str, float] = {}
+    for metric in metrics:
+        b_vals = [float(getattr(fp, metric)) for fp in baseline_fps]
+        c_vals = [float(getattr(fp, metric)) for fp in current_fps]
+        try:
+            _, p = stats.mannwhitneyu(b_vals, c_vals, alternative="two-sided")
+            raw_p[metric] = float(p)
+        except Exception:
+            raw_p[metric] = 1.0
+
+    bh = benjamini_hochberg(raw_p, alpha=alpha)
+    rejected_raw_ps = [raw_p[m] for m in metrics if bh.get(m, (1.0, False))[1]]
+    quality_rejected = [m for m in metrics if bh.get(m, (1.0, False))[1] and m in QUALITY_METRICS]
+    length_only = rejected_raw_ps and all(m in LENGTH_METRICS for m, (_, rej) in bh.items() if rej)
+
+    if not rejected_raw_ps or length_only or not quality_rejected:
+        return False
+
+    _, fisher_p = fisher_combine(rejected_raw_ps)
+    return fisher_p < alpha

@@ -103,10 +103,13 @@ Point your app at the local proxy instead of the provider. Cogscope forwards tra
 
 **Detection methods (by path):**
 
-- **Live proxy (`watch`)**: ADWIN and Page-Hinkley streaming tests per metric (via [frouros](https://github.com/IFCA/frouros)). At least two metric streams must flag drift, including a quality metric. Length-only shifts do not alert alone.
-- **Batch diff (`diff`, `check` populations)**: Mann-Whitney U per metric, Benjamini-Hochberg FDR correction, then Fisher's method for an omnibus call.
-- **CI regression (`regression`)**: McNemar's test on paired correct/incorrect outcomes when you have a fixed benchmark suite and oracle.
-- **Optional (`watch --semantic`)**: local sentence-transformer embeddings and Jensen-Shannon distance (`pip install cogscope[semantic]`).
+- **Live proxy (`watch`)**: KSWIN and MDDM streaming tests per metric (via [frouros](https://github.com/IFCA/frouros)). At least two metric streams must flag structural drift. Length-only shifts do not alert alone.
+- **Batch diff (`diff`, `check` populations)**: Mann-Whitney U per metric, Benjamini-Hochberg FDR correction, then the Cauchy Combination Test (CCT) for an omnibus call that handles correlated metrics.
+- **CI regression (`regression`)**: McNemar's exact test (binary) or paired permutation test (continuous) on fixed benchmark suites with an oracle.
+- **Optional (`watch --semantic`)**: local sentence-transformer embeddings and Jensen-Shannon distance for **semantic drift** (`pip install cogscope[semantic]`).
+- **Optional (`watch --otel`)**: OTel GenAI spans with fingerprint attributes to OTLP (`pip install cogscope[otel]`).
+
+**Structural vs semantic drift:** Heuristic fingerprint shifts are *structural drift* (something changed in reasoning shape, often provider tuning). Embedding shifts are *semantic drift*. Neither alone proves the model got worse.
 
 ### Day-to-day commands
 

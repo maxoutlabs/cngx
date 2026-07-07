@@ -222,7 +222,7 @@ def regression(
     adapter: str = typer.Option("mock", "--adapter", "-a"),
     json_output: bool = typer.Option(False, "--json", "-j"),
 ) -> None:
-    """Run fixed benchmark suite with McNemar paired degradation test (CI)."""
+    """Run fixed benchmark suite with McNemar or paired permutation tests (CI)."""
     from cogscope.cli.regression_cmd import run_regression_suite
 
     raise typer.Exit(

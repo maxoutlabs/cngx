@@ -1,17 +1,15 @@
 """Paired significance testing for fixed-benchmark CI regression.
 
-McNemar's test (McNemar, 1947) compares paired binary outcomes (correct vs
-incorrect) on the *same* test items under two conditions (baseline model run
-vs current model run).
+McNemar's exact test (McNemar, 1947) applies to paired binary pass/fail outcomes
+on identical benchmark items. For continuous or graded paired scores (heuristic
+ratios, rubric grades, multi-run averages), use the paired permutation test
+implemented via the holdout library (sign-flip test; generalizes the Amazon
+Science LLM-Accuracy-Stats recommendation for non-binary paired data).
 
 Why here and not on live proxy traffic:
-- McNemar requires paired binary labels on identical items across conditions.
+- Both tests require paired observations on identical items across conditions.
 - Live open-ended proxy traffic has no ground-truth correctness oracle per call.
-- CI regression suites with policy-defined expected answers *do* provide paired
-  binary outcomes, which is the setting McNemar is designed for.
-
-Used in recent LLM degradation detection research when benchmark items are fixed
-and correctness can be scored; applied only through explicit regression-check paths.
+- CI regression suites with fixed tasks provide the paired structure these tests need.
 """
 
 from __future__ import annotations
@@ -21,6 +19,12 @@ from typing import Sequence
 
 import numpy as np
 from scipy import stats
+
+try:
+    from holdout import mcnemar_exact, paired_permutation_test
+except ImportError:  # pragma: no cover - holdout is a declared dependency
+    mcnemar_exact = None  # type: ignore[assignment]
+    paired_permutation_test = None  # type: ignore[assignment]
 
 
 @dataclass
@@ -32,9 +36,26 @@ class McNemarResult:
     n_discordant: int
     b_baseline_wrong_current_right: int
     c_baseline_right_current_wrong: int
-    degradation_detected: bool
+    shift_detected: bool
     alpha: float
     summary: str
+
+    @property
+    def degradation_detected(self) -> bool:
+        """Backward-compatible alias."""
+        return self.shift_detected
+
+
+@dataclass
+class PairedContinuousResult:
+    """Result of paired permutation test on continuous paired scores."""
+
+    mean_difference: float
+    p_value: float
+    shift_detected: bool
+    alpha: float
+    summary: str
+    n_pairs: int
 
 
 def mcnemar_test(
@@ -42,20 +63,9 @@ def mcnemar_test(
     current_correct: Sequence[bool],
     alpha: float = 0.05,
     *,
-    degradation_direction: str = "current_worse",
+    shift_direction: str = "current_worse",
 ) -> McNemarResult:
-    """McNemar's test for paired binary correctness vectors.
-
-    Args:
-        baseline_correct: Whether baseline run was correct per item.
-        current_correct: Whether current run was correct per item (same order).
-        alpha: Significance level.
-        degradation_direction: ``current_worse`` flags when current fails more
-            often on items baseline passed (c > b). Use ``either`` for any change.
-
-    Returns:
-        McNemarResult with test statistic and degradation flag.
-    """
+    """McNemar's exact test for paired binary correctness vectors."""
     if len(baseline_correct) != len(current_correct):
         raise ValueError("baseline_correct and current_correct must have same length")
     if len(baseline_correct) < 2:
@@ -65,13 +75,13 @@ def mcnemar_test(
             n_discordant=0,
             b_baseline_wrong_current_right=0,
             c_baseline_right_current_wrong=0,
-            degradation_detected=False,
+            shift_detected=False,
             alpha=alpha,
             summary="Insufficient paired items for McNemar test (need >=2).",
         )
 
-    b = 0  # baseline wrong, current right
-    c = 0  # baseline right, current wrong
+    b = 0
+    c = 0
     for bl, cl in zip(baseline_correct, current_correct):
         if not bl and cl:
             b += 1
@@ -86,27 +96,25 @@ def mcnemar_test(
             n_discordant=0,
             b_baseline_wrong_current_right=b,
             c_baseline_right_current_wrong=c,
-            degradation_detected=False,
+            shift_detected=False,
             alpha=alpha,
-            summary="No discordant pairs; no paired degradation signal.",
+            summary="No discordant pairs; no paired shift signal.",
         )
 
-    # Exact binomial test on discordant pairs (McNemar)
-    if n_discordant < 25:
+    if mcnemar_exact is not None:
+        p_value = float(mcnemar_exact(b, c))
+        stat = float(abs(c - b))
+    else:
         p_value = float(stats.binomtest(c, n=n_discordant, p=0.5).pvalue)
-        stat = float((abs(c - b) - 1) ** 2 / (b + c)) if (b + c) else 0.0
-    else:
-        # Chi-square approximation with continuity correction
-        stat = float((abs(c - b) - 1) ** 2 / (b + c))
-        p_value = float(stats.chi2.sf(stat, df=1))
+        stat = float(abs(c - b))
 
-    if degradation_direction == "current_worse":
-        degradation = c > b and p_value < alpha
+    if shift_direction == "current_worse":
+        shift = c > b and p_value < alpha
     else:
-        degradation = p_value < alpha
+        shift = p_value < alpha
 
     summary = f"McNemar: discordant b={b}, c={c}, p={p_value:.4f}" + (
-        ", paired degradation detected." if degradation else "."
+        ", paired shift detected." if shift else "."
     )
 
     return McNemarResult(
@@ -115,9 +123,59 @@ def mcnemar_test(
         n_discordant=n_discordant,
         b_baseline_wrong_current_right=b,
         c_baseline_right_current_wrong=c,
-        degradation_detected=degradation,
+        shift_detected=shift,
         alpha=alpha,
         summary=summary,
+    )
+
+
+def paired_continuous_test(
+    baseline_scores: Sequence[float],
+    current_scores: Sequence[float],
+    alpha: float = 0.05,
+    *,
+    n_resamples: int = 5000,
+    alternative: str = "two-sided",
+) -> PairedContinuousResult:
+    """Paired permutation (sign-flip) test for continuous paired scores.
+
+    Uses holdout.paired_permutation_test on per-item differences
+    (current - baseline). Valid for graded or continuous outcomes without
+    arbitrary pass/fail thresholding.
+    """
+    if len(baseline_scores) != len(current_scores):
+        raise ValueError("baseline_scores and current_scores must have same length")
+    if len(baseline_scores) < 2:
+        return PairedContinuousResult(
+            mean_difference=0.0,
+            p_value=1.0,
+            shift_detected=False,
+            alpha=alpha,
+            summary="Insufficient paired items for permutation test (need >=2).",
+            n_pairs=len(baseline_scores),
+        )
+
+    diffs = [float(c) - float(b) for b, c in zip(baseline_scores, current_scores)]
+    if paired_permutation_test is None:
+        raise ImportError("holdout package is required for paired continuous testing")
+
+    mean_diff, p_value = paired_permutation_test(
+        diffs,
+        n_resamples=n_resamples,
+        alternative=alternative,
+        seed=42,
+    )
+    shift = float(p_value) < alpha
+    summary = f"Paired permutation: mean_diff={mean_diff:.4f}, p={float(p_value):.4f}" + (
+        ", shift detected." if shift else "."
+    )
+    return PairedContinuousResult(
+        mean_difference=float(mean_diff),
+        p_value=float(p_value),
+        shift_detected=shift,
+        alpha=alpha,
+        summary=summary,
+        n_pairs=len(diffs),
     )
 
 

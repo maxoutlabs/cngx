@@ -28,22 +28,35 @@ Treat alerts as "investigate this response," not "the model is broken." For high
 
 ## Why doesn't a shorter answer trigger drift?
 
-By design. Efficiency is not degradation.
+By design. Efficiency is not structural regression.
 
-**Live proxy (streaming):** ADWIN and Page-Hinkley monitor each metric stream relative to your pinned baseline history. Alerts require at least two streams to flag drift, including a quality metric. Length metrics alone never trigger an alert.
+**Live proxy (streaming):** KSWIN and MDDM monitor each metric stream relative to your pinned baseline history. Structural drift alerts require at least two streams to flag, excluding length-only shifts.
 
-**Batch diff/check:** Mann-Whitney p-values are combined with Benjamini-Hochberg FDR correction and Fisher's omnibus test. Length-only BH rejections are explicitly guarded.
+**Batch diff/check:** Mann-Whitney p-values are combined with Benjamini-Hochberg FDR correction and the Cauchy Combination Test (CCT). Length-only BH rejections are explicitly guarded.
 
-A model that becomes more concise while keeping verification depth and other quality signals in range should not fire a false alarm. This is tested in `tests/unit/test_drift_alerting.py`.
+A model that becomes more concise while keeping verification depth and other fingerprint signals in range should not fire a false alarm. This is tested in `tests/unit/test_drift_alerting.py`.
+
+## What is structural drift vs semantic drift?
+
+| | Structural drift | Semantic drift |
+|---|------------------|----------------|
+| **Signal** | Heuristic fingerprint metrics (regex counts) | Optional local embeddings (`--semantic`) |
+| **Means** | Reasoning *shape* changed vs your baseline | *Content* distribution shifted |
+| **Implies** | Something changed, investigate | Topical or semantic shift detected |
+| **Does NOT prove** | The model got worse | The model got worse |
+
+Provider system-prompt tweaks toward conciseness often trigger structural drift without any capability loss. Treat alerts as "go look," not "regression confirmed."
 
 ## What statistical methods does Cogscope use?
 
 | Situation | Methods |
 |-----------|---------|
-| Live `cogscope watch` traffic | ADWIN + Page-Hinkley (frouros), multi-metric corroboration |
-| `cogscope diff` / population compare | Mann-Whitney U, Benjamini-Hochberg (1995), Fisher (1925) |
-| CI fixed benchmark regression | McNemar's test (1947) on paired correct/incorrect |
+| Live `cogscope watch` traffic | KSWIN + MDDM, multi-metric corroboration |
+| `cogscope diff` / population compare | Mann-Whitney U, Benjamini-Hochberg (1995), Cauchy Combination Test (Liu & Xie, 2020) |
+| CI fixed benchmark regression (binary) | McNemar exact (holdout) |
+| CI fixed benchmark regression (continuous) | Paired permutation test (holdout) |
 | Optional `--semantic` | Local MiniLM embeddings + Jensen-Shannon distance |
+| Optional `--otel` | OpenTelemetry GenAI spans + `cogscope.fingerprint.*` attributes |
 
 See [Drift detection](concepts/drift.md) for details.
 

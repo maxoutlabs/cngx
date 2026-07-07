@@ -14,6 +14,7 @@ from cogscope.core.models import ModelConfig, ReasoningTrace, TokenUsage
 from cogscope.drift.detector import DriftDetector
 from cogscope.drift.semantic import get_semantic_analyzer
 from cogscope.fingerprint.extractor import FingerprintExtractor
+from cogscope.observability.otel import emit_capture_span, is_otel_enabled
 from cogscope.proxy.events import CaptureEvent, get_event_bus
 from cogscope.storage.database import get_database
 from cogscope.versioning.baseline import BaselineManager
@@ -200,6 +201,17 @@ async def analyze_completed_call(
             semantic_text=trace.output if _semantic_enabled else None,
             semantic_analyzer=semantic_analyzer,
         )
+
+        if is_otel_enabled():
+            emit_capture_span(
+                trace=trace,
+                fingerprint=fp,
+                provider=provider,
+                drift_score=assessment.drift_score,
+                structural_drift=assessment.structural_alert,
+                semantic_drift=assessment.semantic_alert,
+                baseline_name=baseline.name if baseline else None,
+            )
 
         alert_msg = None
         if assessment.should_alert:

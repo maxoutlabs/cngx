@@ -1,24 +1,25 @@
 """Streaming concept-drift detection for live proxy traffic.
 
-Uses frouros (BSD-3-Clause) ADWIN per metric stream on non-negative behavioral
-values. Page-Hinkley (Page, 1954) is implemented in-house in
-``page_hinkley_two_sided`` because frouros PageHinkley targets 0-1 error-rate
-streams and did not reliably flag integer metric shifts in our evaluation.
+Uses KSWIN (Raab et al., 2020) on count/continuous metrics and MDDM
+(Pesaranghader et al., 2018) on ratio-like metrics. KSWIN compares empirical
+CDFs in a sliding window via Kolmogorov-Smirnov, which tolerates the natural
+variance of generative text metrics better than mean-only cumulative-sum tests.
+MDDM applies McDiarmid-type bounds on a weighted window that favors recent
+samples, suited to gradual shifts in hedging ratio and similar bounded signals.
 
-Each metric stream is independent; user-facing alerts require corroboration
-across multiple metrics (see combine_streaming_signals). Gradual drift is
-detected as ADWIN/Page-Hinkley state accumulates across proxied calls.
-Immediate snapshot comparison on a single call uses the batch path in
-``assess_against_pinned_baseline`` (see batch.py).
+Each metric stream is independent; user-facing structural drift alerts require
+corroboration across multiple metrics (see combine_streaming_signals).
 """
 
 from __future__ import annotations
 
 import threading
+from collections import deque
 from dataclasses import dataclass, field
 from typing import Optional
 
-from frouros.detectors.concept_drift.streaming import ADWIN, ADWINConfig
+import numpy as np
+from frouros.detectors.concept_drift.streaming.window_based.kswin import KSWIN, KSWINConfig
 
 from cogscope.calibration.profiles import LENGTH_METRICS, QUALITY_METRICS
 from cogscope.core.models import BehavioralFingerprint
@@ -33,42 +34,36 @@ STREAMING_METRICS: tuple[str, ...] = (
     "uncertainty_markers",
 )
 
-
-class PageHinkleyTwoSided:
-    """Classic Page (1954) two-sided CUSUM for mean shifts up or down."""
-
-    def __init__(self, delta: float = 0.005, lambda_: float = 8.0) -> None:
-        self.delta = delta
-        self.lambda_ = lambda_
-        self.n = 0
-        self.mean = 0.0
-        self.ph_up_sum = 0.0
-        self.ph_up_min = 0.0
-        self.ph_down_sum = 0.0
-        self.ph_down_max = 0.0
-
-    def update(self, x: float) -> bool:
-        self.n += 1
-        self.mean += (x - self.mean) / self.n
-        self.ph_up_sum += x - self.mean - self.delta
-        self.ph_up_min = min(self.ph_up_min, self.ph_up_sum)
-        up = (self.ph_up_sum - self.ph_up_min) > self.lambda_
-        self.ph_down_sum += self.mean - x - self.delta
-        self.ph_down_max = max(self.ph_down_max, self.ph_down_sum)
-        down = (self.ph_down_sum - self.ph_down_max) > self.lambda_
-        return up or down
+# KSWIN for count/continuous metrics; MDDM for ratio-like metrics
+KSWIN_METRICS: frozenset[str] = frozenset(
+    {
+        "depth",
+        "total_steps",
+        "verification_steps",
+        "correction_count",
+        "branching_factor",
+        "uncertainty_markers",
+    }
+)
+MDDM_METRICS: frozenset[str] = frozenset({"hedging_ratio"})
 
 
-@dataclass
-class StreamingMetricState:
-    """ADWIN + in-house Page-Hinkley for one metric stream."""
+class MDDMDetector:
+    """MDDM-style weighted sliding window detector (Pesaranghader et al., 2018).
 
-    adwin: ADWIN = field(
-        default_factory=lambda: ADWIN(config=ADWINConfig(min_num_instances=8, delta=0.002))
-    )
-    page_hinkley: PageHinkleyTwoSided = field(default_factory=PageHinkleyTwoSided)
-    last_drift: bool = False
-    updates: int = 0
+    Uses linearly increasing weights toward recent observations and a McDiarmid-type
+    control limit on weighted-mean shift vs the older half of the reference window.
+    """
+
+    def __init__(
+        self,
+        window_size: int = 40,
+        alpha: float = 0.001,
+    ) -> None:
+        self.window_size = window_size
+        self.alpha = alpha
+        self.values: deque[float] = deque(maxlen=window_size)
+        self.last_drift = False
 
     def seed(self, values: list[float]) -> None:
         for v in values:
@@ -78,10 +73,63 @@ class StreamingMetricState:
         return self._update_internal(float(value), track_drift=True)
 
     def _update_internal(self, value: float, track_drift: bool) -> bool:
-        self.adwin.update(value=value)
-        ph_drift = self.page_hinkley.update(value)
+        self.values.append(value)
+        if len(self.values) < self.window_size:
+            if track_drift:
+                self.last_drift = False
+            return False
+
+        arr = np.asarray(self.values, dtype=float)
+        n = len(arr)
+        weights = np.linspace(1.0, 2.0, n)
+        weights /= weights.sum()
+        weighted_mean = float(np.average(arr, weights=weights))
+
+        half = max(2, n // 2)
+        ref = arr[:half]
+        ref_mean = float(np.mean(ref))
+        value_range = float(np.max(arr) - np.min(arr)) + 1e-9
+        epsilon = value_range * float(np.sqrt(-np.log(self.alpha / 2.0) / (2.0 * half)))
+
+        drift = abs(weighted_mean - ref_mean) > epsilon
+        if track_drift:
+            self.last_drift = drift
+        return drift if track_drift else False
+
+
+@dataclass
+class StreamingMetricState:
+    """KSWIN or MDDM detector for one metric stream."""
+
+    metric: str
+    kswin: Optional[KSWIN] = None
+    mddm: Optional[MDDMDetector] = None
+    last_drift: bool = False
+    updates: int = 0
+
+    def __post_init__(self) -> None:
+        if self.metric in KSWIN_METRICS and self.kswin is None:
+            self.kswin = KSWIN(
+                config=KSWINConfig(alpha=0.05, min_num_instances=30, num_test_instances=15)
+            )
+        if self.metric in MDDM_METRICS and self.mddm is None:
+            self.mddm = MDDMDetector()
+
+    def seed(self, values: list[float]) -> None:
+        for v in values:
+            self._update_internal(float(v), track_drift=False)
+
+    def update(self, value: float) -> bool:
+        return self._update_internal(float(value), track_drift=True)
+
+    def _update_internal(self, value: float, track_drift: bool) -> bool:
+        drift = False
+        if self.kswin is not None:
+            self.kswin.update(value=value)
+            drift = bool(self.kswin.drift)
+        elif self.mddm is not None:
+            drift = self.mddm.update(value)
         self.updates += 1
-        drift = bool(self.adwin.drift or ph_drift)
         if track_drift:
             self.last_drift = drift
         return drift if track_drift else False
@@ -107,7 +155,7 @@ class StreamingDriftMonitor:
         self.min_drift_metrics = min_drift_metrics
         self.require_quality_metric = require_quality_metric
         self._metrics: dict[str, StreamingMetricState] = {
-            m: StreamingMetricState() for m in STREAMING_METRICS
+            m: StreamingMetricState(metric=m) for m in STREAMING_METRICS
         }
         self._seeded = False
 
@@ -131,7 +179,7 @@ class StreamingDriftMonitor:
         self,
         drift_flags: dict[str, bool],
     ) -> tuple[bool, list[dict]]:
-        """Corroboration: >=2 metrics with ADWIN/PH drift, >=1 quality, not length-only."""
+        """Corroboration: >=2 metrics with KSWIN/MDDM drift, >=1 quality, not length-only."""
         drifted = [
             m for m in STREAMING_METRICS if drift_flags.get(m) or self._metrics[m].last_drift
         ]
@@ -152,6 +200,8 @@ class StreamingDriftMonitor:
                 "is_quality": m in QUALITY_METRICS,
                 "is_length": m in LENGTH_METRICS,
                 "direction": "shift detected",
+                "drift_type": "structural",
+                "detector": "kswin" if m in KSWIN_METRICS else "mddm",
             }
             for m in drifted
         ]

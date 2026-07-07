@@ -100,7 +100,7 @@ class DriftScorer:
         current_fingerprints: list[BehavioralFingerprint],
         alpha: float = 0.05,
     ):
-        """Mann-Whitney + BH + Fisher batch test (preferred for diff/check)."""
+        """Mann-Whitney + BH + CCT batch test (preferred for diff/check)."""
         from cogscope.drift.batch import batch_drift_test
 
         return batch_drift_test(baseline_fingerprints, current_fingerprints, alpha=alpha)

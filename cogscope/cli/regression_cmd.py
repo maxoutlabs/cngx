@@ -84,6 +84,7 @@ def run_regression_suite(
             json.dumps(
                 {
                     "mcnemar_p": mcnemar.p_value,
+                    "shift_detected": mcnemar.shift_detected,
                     "degradation_detected": mcnemar.degradation_detected,
                     "discordant_b": mcnemar.b_baseline_wrong_current_right,
                     "discordant_c": mcnemar.c_baseline_right_current_wrong,
@@ -96,6 +97,6 @@ def run_regression_suite(
         console.print(mcnemar.summary)
         console.print(f"Current suite pass rate: {sum(current_correct)}/{len(current_correct)}")
 
-    if mcnemar.degradation_detected:
+    if mcnemar.shift_detected:
         return 1
     return 0 if all(current_correct) else 2

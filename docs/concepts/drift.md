@@ -4,6 +4,15 @@ Drift detection answers: **"Is this response unusually different from behavior I
 
 It does **not** answer: "Is this model worse than last month industry-wide?" or "Is GPT better than Claude?"
 
+Cogscope distinguishes two kinds of drift:
+
+| Type | What it measures | What it means |
+|------|------------------|---------------|
+| **Structural drift** | Heuristic fingerprint metrics (depth, verification, hedging, etc.) | The reasoning *shape* changed relative to your baseline. Often reflects provider system-prompt tuning or stylistic changes, **not** proof of capability loss. |
+| **Semantic drift** | Optional local embedding distance (`--semantic`) | The *content* distribution shifted even when pattern counts look similar. |
+
+**Treat any structural drift alert as "something changed, go look," not "the model got worse."**
+
 Cogscope uses **different statistical methods for different situations**. They are not blended into one mechanism.
 
 ## Pin a baseline first
@@ -25,12 +34,12 @@ Or watch the live TUI during `cogscope watch`, drift scores appear when a baseli
 
 ## Live proxy path (streaming, no ground truth)
 
-**Algorithms:** [ADWIN](https://doi.org/10.1137/1.9781611972771.63) and Page-Hinkley (Page, 1954) via the [frouros](https://github.com/IFCA/frouros) library (BSD-3-Clause).
+**Algorithms:** [KSWIN](https://doi.org/10.1109/ICDM.2018.00060) (Raab et al., 2020) on count/continuous metrics via [frouros](https://github.com/IFCA/frouros); [MDDM](https://doi.org/10.1109/ICDM.2018.00059) (Pesaranghader et al., 2018) in-house on ratio-like metrics (hedging ratio).
 
-- One streaming detector per **(model, pinned baseline, metric)** for core fingerprint metrics (depth, verification steps, hedging ratio, corrections, branching factor, etc.).
+- One streaming detector per **(model, pinned baseline, metric)** for core fingerprint metrics.
 - Each new proxied call updates its metric streams in **background analysis**, the streamed response is not blocked.
-- A per-metric drift flag comes from the formal streaming test, not an arbitrary z-score cutoff.
-- **User-facing alerts** still require corroboration: at least two metric streams must flag drift, including at least one *quality* metric. Length-only shifts never alert alone.
+- A per-metric flag comes from KSWIN (empirical CDF comparison in a sliding window) or MDDM (weighted-window McDiarmid bound), not mean-only cumulative sums.
+- **Structural drift alerts** still require corroboration: at least two metric streams must flag, including at least one non-length metric. Length-only shifts never alert alone.
 
 Implementation: `cogscope/drift/streaming.py`, wired from `cogscope/proxy/analysis.py`.
 
@@ -40,67 +49,39 @@ Implementation: `cogscope/drift/streaming.py`, wired from `cogscope/proxy/analys
 
 1. Per-metric **Mann-Whitney U** test (non-parametric two-sample comparison).
 2. **Benjamini-Hochberg** false discovery rate correction across simultaneous tests (Benjamini & Hochberg, 1995).
-3. **Fisher's method** combining p-values of BH-rejected metrics into one omnibus statistic (Fisher, 1925).
-
-This replaces the previous hand-rolled "at least two raw p-values" rule with a named, FDR-controlled procedure.
+3. **Cauchy Combination Test** (Liu & Xie, 2020) combining BH-rejected raw p-values into one omnibus statistic. CCT remains valid under arbitrary unknown dependency between correlated heuristic metrics (unlike Fisher's method).
+4. Per-metric p-values and Cohen's d effect sizes are reported alongside the global CCT p-value for interpretability.
 
 Used by `cogscope diff`, `cogscope drift detect`, and population comparisons in `DriftDetector`.
 
 ## CI regression path (paired benchmarks with oracle)
 
-**Algorithm:** **McNemar's test** (McNemar, 1947) on paired binary correct/incorrect outcomes.
+**Binary outcomes:** McNemar's exact test (McNemar, 1947) via the [holdout](https://github.com/jordan-baillie/holdout) library.
 
-- Applies when the **same fixed benchmark items** are run against a baseline and a current model, and a correctness oracle exists (policy YAML, expected substrings, etc.).
-- **Not** used on live open traffic, McNemar requires paired binary labels on identical items, which streaming proxy traffic without ground truth does not provide.
-
-```bash
-cogscope regression --suite benchmarks.yaml --policy policy.yaml \
-  --baseline-outcomes baseline_correct.json
-```
-
-Implementation: `cogscope/drift/paired.py`.
-
-## Optional semantic drift signal
-
-Heuristic regex metrics cannot detect all semantic shifts. For users who want a local, zero-API signal:
+**Continuous / graded scores:** Paired permutation (sign-flip) test via `holdout.paired_permutation_test`, following the generalization recommended in [Amazon Science LLM-Accuracy-Stats](https://github.com/amazon-science/LLM-Accuracy-Stats).
 
 ```bash
-pip install cogscope[semantic]
-cogscope watch --semantic
+cogscope regression --suite benchmarks/math.yaml --policy policies/strict.yaml \
+  --baseline-outcomes baseline_scores.json
 ```
 
-- Embeds response text with **sentence-transformers** `all-MiniLM-L6-v2` (~80MB, CPU, downloaded once).
-- Compares baseline vs current embedding distributions via **Jensen-Shannon divergence** on a reduced projection.
-- **Strictly opt-in**, default `pip install cogscope` and `quickstart` are unchanged.
+Only applies when the same fixed benchmark items are run under baseline and current conditions with a correctness oracle.
 
-Implementation: `cogscope/drift/semantic.py`.
+## Optional semantic drift (`cogscope watch --semantic`)
+
+Requires `pip install cogscope[semantic]`. Compares local sentence embeddings (all-MiniLM-L6-v2) between baseline text and current output using Jensen-Shannon distance. This is **semantic drift**, separate from structural fingerprint drift.
+
+## Optional OpenTelemetry export (`cogscope watch --otel`)
+
+Requires `pip install cogscope[otel]`. Emits GenAI semantic convention spans with `cogscope.fingerprint.*` attributes to an OTLP HTTP endpoint (default `http://localhost:4318`). Off by default; DuckDB remains the primary store.
 
 ## When alerts fire (summary)
 
-| Scenario | Method | Alerts? |
-|----------|--------|---------|
-| Shorter answer, quality metrics stable | Streaming ADWIN/Page-Hinkley | No |
-| Verification + depth drop together vs baseline | Streaming corroboration | Yes |
-| Population window shift (diff) | Mann-Whitney + BH + Fisher | Yes if omnibus significant |
-| Fixed benchmark regression | McNemar paired test | Yes if paired degradation |
-| Single metric wiggles | Any path | No (by design) |
-
-## Drift score
-
-The `drift_score` (0 to 1) from `DiffEngine` is a weighted summary of metric deltas, useful for ranking, not as a standalone alarm. Formal tests gate alerts.
-
-## Reports
-
-```bash
-cogscope report              # terminal summary, last 24 hours
-cogscope report -o report.html   # HTML export
-```
-
-## Public tracker
-
-Opt-in anonymous submissions feed the [Public Drift Log](../guides/public-drift-log.md). Your local prompts never leave your machine unless you run `cogscope submit` and confirm.
-
-## Related
-
-- [Fingerprinting](fingerprinting.md)
-- [FAQ](../faq.md), gaming and pseudo-science objections
+| Situation | Method | Alerts? |
+|-----------|--------|---------|
+| Shorter answer, quality metrics stable | KSWIN/MDDM streaming | No |
+| Concise but within baseline distribution | Streaming + guards | No |
+| Population window shift (diff) | Mann-Whitney + BH + CCT | Yes if omnibus significant |
+| Fixed benchmark regression (binary) | McNemar exact | Yes if paired shift |
+| Fixed benchmark regression (continuous) | Paired permutation | Yes if paired shift |
+| Topical shift, heuristics stable | Semantic embedding (`--semantic`) | Semantic drift only |
