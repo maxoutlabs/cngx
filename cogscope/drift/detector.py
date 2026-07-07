@@ -2,9 +2,10 @@
 
 DESIGN PRINCIPLE (alerting): An alert fires only when multiple behavioral metrics
 deviate significantly from the pinned baseline's own historical distribution for
-that task and model. Never compare to hardcoded universal thresholds. Never alert
-on a single metric in isolation — especially not output length alone. Efficiency
-(shorter answers) inside the baseline's normal range is not drift.
+that task and model. Live proxy traffic uses frouros ADWIN/Page-Hinkley streaming
+detectors per metric (see streaming.py). Batch diff/check uses Mann-Whitney with
+Benjamini-Hochberg FDR and Fisher's combined test (see batch.py). Never alert on
+a single metric in isolation — especially not output length alone.
 
 Automatically detects behavioral drift over time.
 """
@@ -14,7 +15,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Optional
 
-from cogscope.calibration.profiles import get_adaptive_thresholds
 from cogscope.core.config import get_config
 from cogscope.core.exceptions import DriftError
 from cogscope.core.models import (
@@ -226,31 +226,37 @@ class DriftDetector:
         baseline_fps: list[BehavioralFingerprint],
         recent_fps: list[BehavioralFingerprint],
     ) -> tuple[dict[str, float], list[BehaviorChange]]:
-        """Compare two populations of fingerprints."""
-        drift_scores = self.scorer.population_drift(baseline_fps, recent_fps)
+        """Compare two populations using Mann-Whitney + BH + Fisher."""
+        from cogscope.drift.batch import batch_drift_test, outliers_from_batch
+
+        batch = batch_drift_test(baseline_fps, recent_fps, alpha=self.significance_threshold)
         significant_changes = []
 
-        for metric, score in drift_scores.items():
-            if score > (1 - self.significance_threshold):
-                baseline_mean = sum(getattr(fp, metric) for fp in baseline_fps) / len(baseline_fps)
-                recent_mean = sum(getattr(fp, metric) for fp in recent_fps) / len(recent_fps)
-
-                change_type = (
-                    ChangeType.INCREASED if recent_mean > baseline_mean else ChangeType.DECREASED
+        for o in outliers_from_batch(batch):
+            change_type = (
+                ChangeType.INCREASED
+                if o["current_value"] > o["baseline_mean"]
+                else ChangeType.DECREASED
+            )
+            significance = self._score_to_significance(1 - o["p_value"])
+            significant_changes.append(
+                BehaviorChange(
+                    metric=o["metric"],
+                    baseline_value=o["baseline_mean"],
+                    current_value=o["current_value"],
+                    change_type=change_type,
+                    magnitude=abs(o["current_value"] - o["baseline_mean"]),
+                    significance=significance,
+                    description=(
+                        f"{o['metric']}: {o['baseline_mean']:.2f} → "
+                        f"{o['current_value']:.2f} (BH rejected)"
+                    ),
                 )
-                significance = self._score_to_significance(score)
+            )
 
-                significant_changes.append(
-                    BehaviorChange(
-                        metric=metric,
-                        baseline_value=baseline_mean,
-                        current_value=recent_mean,
-                        change_type=change_type,
-                        magnitude=abs(recent_mean - baseline_mean),
-                        significance=significance,
-                        description=f"{metric}: {baseline_mean:.2f} → {recent_mean:.2f}",
-                    )
-                )
+        drift_scores = {m.metric: 1 - m.p_value for m in batch.metric_results}
+        if batch.should_alert:
+            drift_scores["fisher_omnibus"] = 1 - batch.fisher_p_value
 
         return drift_scores, significant_changes
 
@@ -368,22 +374,48 @@ class DriftDetector:
         historical: list[BehavioralFingerprint],
         baseline_name: Optional[str] = None,
         model_name: Optional[str] = None,
+        semantic_text: Optional[str] = None,
+        semantic_analyzer=None,
     ) -> DriftAssessment:
-        """Statistically assess one fingerprint vs pinned baseline history.
+        """Assess one live capture using streaming ADWIN/Page-Hinkley detectors.
 
-        Uses multi-metric corroboration — never a lone length change.
+        Maintains per-(model, baseline) streaming state; alerts require
+        corroboration across multiple metric streams.
         """
-        model = model_name or current.model
-        thresholds = get_adaptive_thresholds(model)
+        from cogscope.drift.streaming import get_streaming_registry
 
-        # History must include baseline fingerprint for distribution context
+        model = model_name or current.model
+        bname = baseline_name or "default"
+
         population = list(historical) if historical else [baseline_fp]
         pop_ids = {fp.trace_id for fp in population}
         if baseline_fp.trace_id not in pop_ids:
             population = [baseline_fp, *population]
 
-        distribution = thresholds.build_metric_distribution(population)
-        should_alert, outliers = thresholds.is_multimetric_outlier(current, distribution)
+        registry = get_streaming_registry()
+        monitor = registry.get_or_create(model, bname)
+        if not monitor._seeded:
+            monitor.seed_from_history(population)
+
+        drift_flags = monitor.update(current)
+        should_alert, outliers = monitor.combine_streaming_signals(drift_flags)
+
+        semantic_note = None
+        if semantic_analyzer is not None and semantic_text:
+            sem = semantic_analyzer.compare_current_text(semantic_text)
+            semantic_note = sem.summary
+            if sem.drift_detected and not should_alert:
+                outliers = list(outliers) + [
+                    {
+                        "metric": "semantic_embedding",
+                        "streaming_drift": True,
+                        "is_quality": True,
+                        "is_length": False,
+                        "direction": "semantic shift",
+                        "js_distance": sem.distance,
+                    }
+                ]
+                should_alert = True
 
         diff = self.diff_engine.diff(baseline_fp, current)
         drift_score = diff.drift_score
@@ -391,17 +423,23 @@ class DriftDetector:
         plain: list[str] = []
         for o in outliers:
             metric = o["metric"].replace("_", " ")
-            plain.append(
-                f"{metric} {o['direction']} from typical {o['baseline_mean']:.1f} "
-                f"to {o['current_value']:.1f}"
-            )
+            if "baseline_mean" in o:
+                plain.append(
+                    f"{metric} {o['direction']} from typical {o['baseline_mean']:.1f} "
+                    f"to {o['current_value']:.1f}"
+                )
+            else:
+                plain.append(f"{metric}: {o['direction']} (ADWIN/Page-Hinkley)")
 
         if not should_alert and outliers:
-            summary = "Within baseline statistical range (no corroborated drift)."
+            summary = "Within baseline statistical range (no corroborated streaming drift)."
         elif should_alert:
-            summary = f"Corroborated drift across {len(outliers)} metrics."
+            summary = f"Corroborated streaming drift across {len(outliers)} metric stream(s)."
         else:
             summary = "Behavior matches pinned baseline distribution."
+
+        if semantic_note:
+            summary = f"{summary} {semantic_note}"
 
         return DriftAssessment(
             should_alert=should_alert,

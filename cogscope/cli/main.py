@@ -210,6 +210,27 @@ def check(
 
 
 @app.command()
+def regression(
+    suite: Path = typer.Option(..., "--suite", "-s", help="YAML benchmark suite"),
+    policy: Path = typer.Option(..., "--policy", "-c", help="Policy YAML"),
+    baseline_outcomes: Optional[Path] = typer.Option(
+        None,
+        "--baseline-outcomes",
+        help="JSON file with baseline correct[] vector for McNemar test",
+    ),
+    model: str = typer.Option("mock-model", "--model", "-m"),
+    adapter: str = typer.Option("mock", "--adapter", "-a"),
+    json_output: bool = typer.Option(False, "--json", "-j"),
+) -> None:
+    """Run fixed benchmark suite with McNemar paired degradation test (CI)."""
+    from cogscope.cli.regression_cmd import run_regression_suite
+
+    raise typer.Exit(
+        run_regression_suite(suite, policy, model, adapter, baseline_outcomes, json_output)
+    )
+
+
+@app.command()
 def report(
     hours: int = typer.Option(24, "--hours", "-h"),
     task_id: Optional[str] = typer.Option(None, "--task", "-t"),

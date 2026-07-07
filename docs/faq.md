@@ -30,13 +30,22 @@ Treat alerts as "investigate this response," not "the model is broken." For high
 
 By design. Efficiency is not degradation.
 
-Alerting logic (`cogscope/calibration/profiles.py`, `cogscope/drift/detector.py`):
+**Live proxy (streaming):** ADWIN and Page-Hinkley monitor each metric stream relative to your pinned baseline history. Alerts require at least two streams to flag drift, including a quality metric. Length metrics alone never trigger an alert.
 
-- Compare against the pinned baseline's **distribution**, not fixed universal numbers
-- Require **≥2 outlier metrics**, including at least one quality metric
-- **Length-only changes never alert alone**
+**Batch diff/check:** Mann-Whitney p-values are combined with Benjamini-Hochberg FDR correction and Fisher's omnibus test. Length-only BH rejections are explicitly guarded.
 
 A model that becomes more concise while keeping verification depth and other quality signals in range should not fire a false alarm. This is tested in `tests/unit/test_drift_alerting.py`.
+
+## What statistical methods does Cogscope use?
+
+| Situation | Methods |
+|-----------|---------|
+| Live `cogscope watch` traffic | ADWIN + Page-Hinkley (frouros), multi-metric corroboration |
+| `cogscope diff` / population compare | Mann-Whitney U, Benjamini-Hochberg (1995), Fisher (1925) |
+| CI fixed benchmark regression | McNemar's test (1947) on paired correct/incorrect |
+| Optional `--semantic` | Local MiniLM embeddings + Jensen-Shannon distance |
+
+See [Drift detection](concepts/drift.md) for details.
 
 ## How is this different from output benchmarks?
 

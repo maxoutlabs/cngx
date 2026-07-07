@@ -12,12 +12,21 @@ from typing import Any, Optional
 
 from cogscope.core.models import ModelConfig, ReasoningTrace, TokenUsage
 from cogscope.drift.detector import DriftDetector
+from cogscope.drift.semantic import get_semantic_analyzer
 from cogscope.fingerprint.extractor import FingerprintExtractor
 from cogscope.proxy.events import CaptureEvent, get_event_bus
 from cogscope.storage.database import get_database
 from cogscope.versioning.baseline import BaselineManager
 
 logger = logging.getLogger("cogscope.proxy.analysis")
+
+_semantic_enabled: bool = False
+
+
+def set_semantic_analysis_enabled(enabled: bool) -> None:
+    """Enable optional local embedding drift (requires cogscope[semantic])."""
+    global _semantic_enabled
+    _semantic_enabled = enabled
 
 
 def _extract_prompt(messages: list[dict]) -> str:
@@ -169,12 +178,27 @@ async def analyze_completed_call(
 
         historical = db.get_fingerprints_by_task(task_id, limit=30)
         detector = DriftDetector(db=db)
+        semantic_analyzer = get_semantic_analyzer(_semantic_enabled)
+        if semantic_analyzer is not None and historical:
+            trace_outputs = {}
+            for hfp in historical:
+                try:
+                    ht = db.get_trace(hfp.trace_id)
+                    if ht:
+                        trace_outputs[hfp.trace_id] = ht.output or ""
+                except Exception:
+                    pass
+            if not semantic_analyzer._baseline_embeddings:
+                semantic_analyzer.seed_from_fingerprints(historical, trace_outputs)
+
         assessment = detector.assess_against_pinned_baseline(
             fp,
             baseline_fp,
             historical,
             baseline_name=baseline.name if baseline else None,
             model_name=trace.model,
+            semantic_text=trace.output if _semantic_enabled else None,
+            semantic_analyzer=semantic_analyzer,
         )
 
         alert_msg = None

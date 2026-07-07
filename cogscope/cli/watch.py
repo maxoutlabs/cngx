@@ -14,12 +14,20 @@ console = Console(stderr=True)
 def run_watch(
     port: int = typer.Option(8642, "--port", "-p", help="Local proxy port"),
     host: str = typer.Option("127.0.0.1", "--host", help="Bind address (localhost only)"),
+    semantic: bool = typer.Option(
+        False,
+        "--semantic",
+        help="Enable optional local embedding drift signal (requires cogscope[semantic])",
+    ),
 ) -> None:
     """Start local proxy and live dashboard."""
     from cogscope.core.config import get_config
+    from cogscope.proxy.analysis import set_semantic_analysis_enabled
     from cogscope.proxy.config import ProxyConfig
     from cogscope.proxy.server import run_proxy
     from cogscope.tui.dashboard import run_dashboard
+
+    set_semantic_analysis_enabled(semantic)
 
     if host not in ("127.0.0.1", "localhost", "::1"):
         console.print("[red]Proxy only binds to localhost for safety.[/]")
