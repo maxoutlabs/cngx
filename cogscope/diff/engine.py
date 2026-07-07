@@ -382,7 +382,7 @@ class DiffEngine:
 
         # Generate description
         if is_percentage:
-            desc = f"{metric}: {baseline_value:.2f} → {current_value:.2f} ({magnitude*100:+.1f}%)"
+            desc = f"{metric}: {baseline_value:.2f} → {current_value:.2f} ({magnitude * 100:+.1f}%)"
         else:
             desc = f"{metric}: {baseline_value} → {current_value} ({current_value - baseline_value:+g})"
 

@@ -1,4 +1,4 @@
-"""Streaming Capture Example — Cogscope
+"""Streaming Capture Example, Cogscope
 
 Demonstrates how to use Cogscope's streaming capture to get
 real-time token output while still capturing the full
@@ -12,7 +12,7 @@ from cogscope import CogscopeTracer, StreamChunk
 
 
 def sync_streaming_example():
-    """Synchronous streaming — simplest approach."""
+    """Synchronous streaming, simplest approach."""
     print("=" * 60)
     print("Synchronous Streaming Capture")
     print("=" * 60)
@@ -31,7 +31,7 @@ def sync_streaming_example():
             print(chunk.text, end="", flush=True)
             full_text += chunk.text
         else:
-            # Final chunk — trace is saved automatically
+            # Final chunk, trace is saved automatically
             trace = chunk.metadata["trace"]
             print(f"\n\n--- Stream Complete ---")
             print(f"  Model: {trace.model}")
@@ -41,7 +41,7 @@ def sync_streaming_example():
 
 
 async def async_streaming_example():
-    """Async streaming — for high-throughput applications."""
+    """Async streaming, for high-throughput applications."""
     print("\n" + "=" * 60)
     print("Async Streaming Capture")
     print("=" * 60)

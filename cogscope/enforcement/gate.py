@@ -1,13 +1,13 @@
 """Production enforcement gate.
 
 Multi-layer validation gate that produces hard exit codes
-for CI/CD pipeline integration. Not just eval — enforcement.
+for CI/CD pipeline integration. Not just eval, enforcement.
 
 Exit codes:
-  0 = PASS — all checks passed
-  1 = FAIL — contract violations detected
-  2 = ERROR — infrastructure/configuration error
-  3 = WARN — soft violations (advisory mode)
+  0 = PASS, all checks passed
+  1 = FAIL, contract violations detected
+  2 = ERROR, infrastructure/configuration error
+  3 = WARN, soft violations (advisory mode)
 """
 
 from __future__ import annotations
@@ -120,7 +120,7 @@ class EnforcementResult:
             lines.append(
                 f"  [{status}] {check.check_name}: "
                 f"{check.score:.3f} (threshold: {check.threshold:.3f}) "
-                f"— {check.message}"
+                f",  {check.message}"
             )
 
         lines.append("-" * 60)
@@ -134,7 +134,7 @@ class EnforcementGate:
     """Production enforcement gate for CI/CD pipelines.
 
     Runs multi-layer validation and produces hard exit codes.
-    This is the deployment gate — not an eval tool.
+    This is the deployment gate, not an eval tool.
 
     Usage:
         gate = EnforcementGate(config)
@@ -374,7 +374,7 @@ class EnforcementGate:
             return f"[{mode}] All {total} checks passed."
         else:
             failed_names = [c.check_name for c in checks if not c.passed]
-            return f"[{mode}] {passed}/{total} checks passed. " f"Failed: {', '.join(failed_names)}"
+            return f"[{mode}] {passed}/{total} checks passed. Failed: {', '.join(failed_names)}"
 
     def enforce_and_exit(self, **kwargs) -> None:
         """Run gate and exit with appropriate code. For CLI usage."""

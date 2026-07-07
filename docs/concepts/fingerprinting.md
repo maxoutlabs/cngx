@@ -38,7 +38,7 @@ Full field list: `BehavioralFingerprint` in `cogscope/core/models.py`.
 
 ## Why regex?
 
-Regex is fast, deterministic, and runs locally on every response without extra API calls. The tradeoff is obvious: a model can write "let me verify" without actually verifying. Cogscope treats metrics as **signals**, not verdicts — especially for drift detection, which looks at *change* from your baseline, not absolute scores.
+Regex is fast, deterministic, and runs locally on every response without extra API calls. The tradeoff is obvious: a model can write "let me verify" without actually verifying. Cogscope treats metrics as **signals**, not verdicts, especially for drift detection, which looks at *change* from your baseline, not absolute scores.
 
 ## Fingerprints are stored locally
 
@@ -46,5 +46,5 @@ Each fingerprint links to a trace ID in `.cogscope/cogscope.db` (DuckDB). Prompt
 
 ## Related
 
-- [Drift Detection](drift.md) — when metric changes trigger alerts
-- [Writing a Policy](policies.md) — hard constraints on metrics
+- [Drift Detection](drift.md), when metric changes trigger alerts
+- [Writing a Policy](policies.md), hard constraints on metrics

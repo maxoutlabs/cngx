@@ -1,4 +1,4 @@
-"""Proxy path latency — analysis must not block streamed responses."""
+"""Proxy path latency, analysis must not block streamed responses."""
 
 from __future__ import annotations
 

@@ -55,7 +55,7 @@ cogscope quickstart
 
 ## Docker (optional)
 
-A minimal image runs **only the local proxy** — for a home server or VPS:
+A minimal image runs **only the local proxy**, for a home server or VPS:
 
 ```bash
 docker build -t cogscope-proxy .
@@ -66,5 +66,5 @@ See the [Dockerfile](https://github.com/aadi-joshi/cogscope/blob/main/Dockerfile
 
 ## Next steps
 
-- [Quickstart](quickstart.md) — see the core value proposition in one command
-- [CLI Reference](../cli/reference.md) — full command list
+- [Quickstart](quickstart.md), see the core value proposition in one command
+- [CLI Reference](../cli/reference.md), full command list

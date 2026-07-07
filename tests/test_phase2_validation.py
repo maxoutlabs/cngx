@@ -1,4 +1,4 @@
-"""Phase 2 — Comprehensive validation tests.
+"""Phase 2, Comprehensive validation tests.
 
 Covers all missing test categories identified during audit:
 1. Regression scenarios (model version, temperature, prompt, reasoning removal, CoT depth)
@@ -129,7 +129,7 @@ class TestRegressionScenarios:
                 "I think quantum entanglement might involve particles being linked. "
                 "Perhaps when one is measured, the other changes too? "
                 "It's possible that distance doesn't matter, but I'm not entirely sure. "
-                "Let me reconsider — actually, the correlation is well-established."
+                "Let me reconsider, actually, the correlation is well-established."
             ),
             model="gpt-4o",
         )
@@ -162,7 +162,7 @@ class TestRegressionScenarios:
             output=(
                 "Well, thinking about this... France is a country in Western Europe, "
                 "and I believe its capital might be Paris. Actually, yes, Paris is "
-                "definitely the capital. Let me verify — Paris has been the capital "
+                "definitely the capital. Let me verify, Paris has been the capital "
                 "since at least the 10th century. So to confirm, the capital of France "
                 "is indeed Paris, which is also the largest city in the country."
             ),
@@ -211,7 +211,7 @@ class TestRegressionScenarios:
 
     def test_reasoning_instruction_removal_produces_drift(self):
         """Removing reasoning instructions should reduce verification steps,
-        correction counts, and depth — producing drift."""
+        correction counts, and depth, producing drift."""
         trace_with_reasoning = _make_trace(
             prompt="Think carefully and show your work: What is 15% of 340?",
             output=(
@@ -537,7 +537,7 @@ class TestToolConstraints:
 
 
 # ═══════════════════════════════════════════════
-#  SECTION 4: Output Constraint — require_structured
+#  SECTION 4: Output Constraint, require_structured
 # ═══════════════════════════════════════════════
 
 
@@ -670,8 +670,8 @@ class TestStressScenarios:
         """A response cut off mid-sentence should produce a valid fingerprint
         without crashing."""
         trace = _make_trace(
-            output="Step 1: First we need to consider the implications of—",
-            reasoning="Step 1: First we need to consider the implications of—",
+            output="Step 1: First we need to consider the implications of, ",
+            reasoning="Step 1: First we need to consider the implications of, ",
         )
         fp = self.extractor.extract(trace)
 
@@ -752,8 +752,8 @@ class TestStressScenarios:
             output=OutputConstraint(min_length=5),
         )
         trace = _make_trace(
-            output="Step 1: First we—",
-            reasoning="Step 1: First we—",
+            output="Step 1: First we, ",
+            reasoning="Step 1: First we, ",
         )
         fp = self.extractor.extract(trace)
 

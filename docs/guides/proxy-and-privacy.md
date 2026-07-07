@@ -20,7 +20,7 @@ Implementation: `cogscope/proxy/`
 | Where keys live | Environment variables only (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`) |
 | Persistence | **Never** written to DuckDB, config files, or logs |
 | Lifetime | In memory for the duration of a single forwarded request |
-| Telemetry | **None** — no phone-home, no analytics |
+| Telemetry | **None**, no phone-home, no analytics |
 
 ## What is stored locally
 
@@ -48,9 +48,9 @@ If `gh` CLI is available, submit opens a PR to add one JSON file under `tracker/
 
 ## Docker
 
-The optional Dockerfile runs the proxy only — single container, no multi-service stack. You supply API keys at `docker run` time via `-e`.
+The optional Dockerfile runs the proxy only, single container, no multi-service stack. You supply API keys at `docker run` time via `-e`.
 
 ## Related
 
-- [SECURITY.md](https://github.com/aadi-joshi/cogscope/blob/main/SECURITY.md) — vulnerability reporting
-- [Public Drift Log](public-drift-log.md) — what submit shares
+- [SECURITY.md](https://github.com/aadi-joshi/cogscope/blob/main/SECURITY.md) for vulnerability reporting
+- [Public Drift Log](public-drift-log.md), what submit shares

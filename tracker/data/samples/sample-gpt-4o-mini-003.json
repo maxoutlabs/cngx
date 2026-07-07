@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "sample": true,
-  "_comment": "Demonstration data only — timeline point 3.",
+  "_comment": "Demonstration data only, timeline point 3.",
   "record_id": "sample-gpt4o-mini-003",
   "timestamp": "2026-03-10T10:00:00Z",
   "model": "gpt-4o-mini",

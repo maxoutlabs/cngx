@@ -25,13 +25,13 @@ def describe_shift(shift: dict) -> str:
     if direction == "decreased":
         return (
             f"{metric} dropped from a typical {typical:.1f} to {current:.1f} "
-            f"— this response skipped behavior it normally shows"
+            f",  this response skipped behavior it normally shows"
         )
     return f"{metric} rose from a typical {typical:.1f} to {current:.1f}"
 
 
 def format_alert_panel(event: CaptureEvent) -> str:
-    lines = ["[bold red]Drift detected[/] — corroborated metric shifts:"]
+    lines = ["[bold red]Drift detected[/], corroborated metric shifts:"]
     for shift in event.metric_shifts:
         lines.append(f"  • {describe_shift(shift)}")
     if event.baseline_name:

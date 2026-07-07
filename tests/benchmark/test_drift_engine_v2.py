@@ -159,14 +159,18 @@ class TestMcNemarSynthetic:
         baseline = [True] * 50
         current = [True] * 30 + [False] * 20
         result = mcnemar_test(baseline, current)
-        print(f"\nMcNemar degradation: p={result.p_value:.6f}, detected={result.degradation_detected}")
+        print(
+            f"\nMcNemar degradation: p={result.p_value:.6f}, detected={result.degradation_detected}"
+        )
         assert result.degradation_detected
 
     def test_no_false_alarm_on_identical(self):
         baseline = [True, False, True, False, True, False] * 10
         current = list(baseline)
         result = mcnemar_test(baseline, current)
-        print(f"\nMcNemar identical: p={result.p_value:.6f}, detected={result.degradation_detected}")
+        print(
+            f"\nMcNemar identical: p={result.p_value:.6f}, detected={result.degradation_detected}"
+        )
         assert not result.degradation_detected
 
 

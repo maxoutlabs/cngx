@@ -85,7 +85,7 @@ class CircuitBreaker:
                 if self._success_count >= self.config.success_threshold:
                     self._state = CircuitState.CLOSED
                     self._failure_count = 0
-                    logger.info("Circuit breaker closed — provider recovered")
+                    logger.info("Circuit breaker closed, provider recovered")
             elif self._state == CircuitState.CLOSED:
                 self._failure_count = 0
 
@@ -95,7 +95,7 @@ class CircuitBreaker:
             self._last_failure_time = time.monotonic()
             if self._state == CircuitState.HALF_OPEN:
                 self._state = CircuitState.OPEN
-                logger.warning("Circuit breaker re-opened — recovery failed")
+                logger.warning("Circuit breaker re-opened, recovery failed")
             elif self._failure_count >= self.config.failure_threshold:
                 self._state = CircuitState.OPEN
                 logger.warning(f"Circuit breaker opened after {self._failure_count} failures")
@@ -167,7 +167,7 @@ def retry_with_backoff(
                         delay = compute_delay(attempt, cfg)
                         logger.warning(
                             f"Retry {attempt + 1}/{cfg.max_retries} after "
-                            f"{delay:.1f}s — {type(e).__name__}: {e}"
+                            f"{delay:.1f}s, {type(e).__name__}: {e}"
                         )
                         if cfg.on_retry:
                             cfg.on_retry(attempt + 1, e, delay)
@@ -183,13 +183,13 @@ def retry_with_backoff(
                         last_exception = e
                         if attempt < cfg.max_retries:
                             delay = compute_delay(attempt, cfg)
-                            # Special handling for 429 — respect Retry-After
+                            # Special handling for 429, respect Retry-After
                             retry_after = getattr(e, "retry_after", None)
                             if retry_after:
                                 delay = max(delay, float(retry_after))
                             logger.warning(
                                 f"Retry {attempt + 1}/{cfg.max_retries} after "
-                                f"{delay:.1f}s — HTTP {status}"
+                                f"{delay:.1f}s, HTTP {status}"
                             )
                             if cfg.on_retry:
                                 cfg.on_retry(attempt + 1, e, delay)
@@ -237,7 +237,7 @@ async def async_retry_with_backoff(
                 delay = compute_delay(attempt, cfg)
                 logger.warning(
                     f"Async retry {attempt + 1}/{cfg.max_retries} after "
-                    f"{delay:.1f}s — {type(e).__name__}: {e}"
+                    f"{delay:.1f}s, {type(e).__name__}: {e}"
                 )
                 await asyncio.sleep(delay)
             else:

@@ -114,7 +114,6 @@ class SemanticDriftAnalyzer:
 
         current_emb = self.embed_text(text)
         baseline_pc1 = self._pc1_project(self._baseline_embeddings)
-        current_pc1 = self._pc1_project(self._baseline_embeddings + [current_emb])[-1:]
         # Project current onto baseline PC1 direction for stability
         mat = np.vstack(self._baseline_embeddings)
         centered = mat - mat.mean(axis=0)
@@ -166,9 +165,7 @@ class SemanticDriftAnalyzer:
         centered = mat - mat.mean(axis=0)
         u, _s, _vt = np.linalg.svd(centered, full_matrices=False)
         direction = u[:, 0]
-        current_scalars = [
-            float(np.dot(e - mat.mean(axis=0), direction)) for e in current_embs
-        ]
+        current_scalars = [float(np.dot(e - mat.mean(axis=0), direction)) for e in current_embs]
         dist = float(stats.wasserstein_distance(baseline_pc1, current_scalars))
         detected = dist > np.std(baseline_pc1) * 2
         return dist, detected

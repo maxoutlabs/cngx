@@ -1,7 +1,7 @@
 """Model behavioral profiles and adaptive threshold calibration.
 
 DESIGN PRINCIPLE (alerting): Drift alerts must compare each response against
-that model's own pinned baseline distribution — never against hardcoded universal
+that model's own pinned baseline distribution, never against hardcoded universal
 numbers. A shorter or more concise answer is not degradation by itself; only
 multi-metric statistical outliers relative to the user's baseline history should
 raise an alert.
@@ -77,7 +77,7 @@ class ModelProfile:
     # Tool usage
     typical_tool_diversity: float = 0.5
 
-    # Language patterns — different models use different phrasing
+    # Language patterns, different models use different phrasing
     correction_patterns: list[str] = field(default_factory=list)
     uncertainty_patterns: list[str] = field(default_factory=list)
     confidence_patterns: list[str] = field(default_factory=list)
@@ -401,7 +401,7 @@ class AdaptiveThresholds:
     """Thresholds adjusted for a specific model's behavioral profile.
 
     For alerting, builds per-metric distributions from the user's pinned baseline
-    history. Alerts require corroboration across multiple metrics — never a lone
+    history. Alerts require corroboration across multiple metrics, never a lone
     length change in isolation.
     """
 

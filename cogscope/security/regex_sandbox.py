@@ -42,7 +42,7 @@ class RegexComplexityError(Exception):
 
 # Patterns known to cause catastrophic backtracking
 _DANGEROUS_PATTERNS = [
-    re.compile(r"\([^)]*[+*][^)]*\)[+*]"),  # (a+)+ or (a*)* — nested quantifiers
+    re.compile(r"\([^)]*[+*][^)]*\)[+*]"),  # (a+)+ or (a*)*, nested quantifiers
     re.compile(r"\([^)]*\|[^)]*\)[+*]{"),  # (a|b){n,m} with overlap
     re.compile(r"\.{2,}[+*]"),  # ..+ or ..*
 ]
@@ -51,7 +51,7 @@ _DANGEROUS_PATTERNS = [
 MAX_PATTERN_LENGTH = 1000
 
 # Maximum input length for regex matching (characters)
-MAX_INPUT_LENGTH = 500_000  # 500KB — generous for LLM output
+MAX_INPUT_LENGTH = 500_000  # 500KB, generous for LLM output
 
 # Default execution timeout
 DEFAULT_TIMEOUT_SECONDS = 2.0
@@ -145,7 +145,7 @@ def safe_regex_search(
     thread.join(timeout=timeout_seconds)
 
     if thread.is_alive():
-        # Thread is still running — regex is backtracking
+        # Thread is still running, regex is backtracking
         raise RegexTimeoutError(pattern.pattern, timeout_seconds)
 
     if error:

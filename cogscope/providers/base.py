@@ -59,7 +59,7 @@ class TokenAccountant:
     Thread-safe accumulator for cost and usage tracking.
     """
 
-    # Approximate cost per 1K tokens (USD) — June 2025 estimates
+    # Approximate cost per 1K tokens (USD), June 2025 estimates
     COST_PER_1K: dict[str, dict[str, float]] = {
         "gpt-4o": {"input": 0.0025, "output": 0.01},
         "gpt-4o-mini": {"input": 0.00015, "output": 0.0006},

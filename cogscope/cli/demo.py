@@ -415,7 +415,7 @@ def quick_demo() -> None:
     else:
         console.print(
             Panel(
-                f"[green bold]DEPLOYMENT ALLOWED[/]\n\n" f"Exit Code: {result.exit_code}",
+                f"[green bold]DEPLOYMENT ALLOWED[/]\n\nExit Code: {result.exit_code}",
                 border_style="green",
             )
         )

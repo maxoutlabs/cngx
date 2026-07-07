@@ -15,7 +15,7 @@ Cogscope v0.1.0 is deliberately narrow:
 - Live TUI during `cogscope watch`
 - Opt-in public tracker via `cogscope submit`
 
-This is the full OSS tool — not a stripped-down demo of a larger platform.
+This is the full OSS tool, not a stripped-down demo of a larger platform.
 
 ## Deferred, not abandoned
 

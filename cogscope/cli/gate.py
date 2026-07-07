@@ -1,4 +1,4 @@
-"""Cogscope Gate — behavioral contract enforcement CLI.
+"""Cogscope Gate, behavioral contract enforcement CLI.
 
 Primary commands for deployment blocking and CI/CD integration.
 """

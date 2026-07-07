@@ -105,9 +105,8 @@ def mcnemar_test(
     else:
         degradation = p_value < alpha
 
-    summary = (
-        f"McNemar: discordant b={b}, c={c}, p={p_value:.4f}"
-        + (" — paired degradation detected." if degradation else ".")
+    summary = f"McNemar: discordant b={b}, c={c}, p={p_value:.4f}" + (
+        ", paired degradation detected." if degradation else "."
     )
 
     return McNemarResult(

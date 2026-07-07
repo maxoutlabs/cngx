@@ -79,9 +79,7 @@ class GeminiAdapter(BaseAdapter):
             **kwargs: Additional configuration
         """
         if not GEMINI_AVAILABLE:
-            raise AdapterError(
-                "Google GenAI package not installed. " "Run: pip install google-genai"
-            )
+            raise AdapterError("Google GenAI package not installed. Run: pip install google-genai")
 
         # Resolve model alias
         resolved_model = self.MODEL_ALIASES.get(model, model)

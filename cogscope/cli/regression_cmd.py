@@ -31,10 +31,9 @@ def run_regression_suite(
             forbidden_substrings: ["error"]
     """
     from cogscope.capture.tracer import CogscopeTracer
+    from cogscope.cli.check_cmd import _load_policy
     from cogscope.contracts import DeploymentGate
     from cogscope.drift.paired import evaluate_item_correctness, mcnemar_test
-
-    from cogscope.cli.check_cmd import _load_policy
 
     with open(suite_path, encoding="utf-8") as f:
         suite = yaml.safe_load(f)
@@ -71,9 +70,7 @@ def run_regression_suite(
         baseline_correct = [bool(x) for x in data["correct"]]
     else:
         # First run seeds baseline (no McNemar yet)
-        console.print(
-            "[yellow]No --baseline-outcomes provided; recording current run only.[/]"
-        )
+        console.print("[yellow]No --baseline-outcomes provided; recording current run only.[/]")
         if json_output:
             print(json.dumps({"correct": current_correct, "n": len(current_correct)}, indent=2))
         else:
@@ -97,9 +94,7 @@ def run_regression_suite(
         )
     else:
         console.print(mcnemar.summary)
-        console.print(
-            f"Current suite pass rate: {sum(current_correct)}/{len(current_correct)}"
-        )
+        console.print(f"Current suite pass rate: {sum(current_correct)}/{len(current_correct)}")
 
     if mcnemar.degradation_detected:
         return 1

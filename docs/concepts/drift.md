@@ -4,7 +4,7 @@ Drift detection answers: **"Is this response unusually different from behavior I
 
 It does **not** answer: "Is this model worse than last month industry-wide?" or "Is GPT better than Claude?"
 
-Cogscope uses **different statistical methods for different situations** — they are not blended into one mechanism.
+Cogscope uses **different statistical methods for different situations**. They are not blended into one mechanism.
 
 ## Pin a baseline first
 
@@ -21,14 +21,14 @@ A baseline stores a reference fingerprint for a task/model pair in `.cogscope/co
 cogscope diff --baseline my-baseline
 ```
 
-Or watch the live TUI during `cogscope watch` — drift scores appear when a baseline is pinned.
+Or watch the live TUI during `cogscope watch`, drift scores appear when a baseline is pinned.
 
 ## Live proxy path (streaming, no ground truth)
 
 **Algorithms:** [ADWIN](https://doi.org/10.1137/1.9781611972771.63) and Page-Hinkley (Page, 1954) via the [frouros](https://github.com/IFCA/frouros) library (BSD-3-Clause).
 
 - One streaming detector per **(model, pinned baseline, metric)** for core fingerprint metrics (depth, verification steps, hedging ratio, corrections, branching factor, etc.).
-- Each new proxied call updates its metric streams in **background analysis** — the streamed response is not blocked.
+- Each new proxied call updates its metric streams in **background analysis**, the streamed response is not blocked.
 - A per-metric drift flag comes from the formal streaming test, not an arbitrary z-score cutoff.
 - **User-facing alerts** still require corroboration: at least two metric streams must flag drift, including at least one *quality* metric. Length-only shifts never alert alone.
 
@@ -51,7 +51,7 @@ Used by `cogscope diff`, `cogscope drift detect`, and population comparisons in 
 **Algorithm:** **McNemar's test** (McNemar, 1947) on paired binary correct/incorrect outcomes.
 
 - Applies when the **same fixed benchmark items** are run against a baseline and a current model, and a correctness oracle exists (policy YAML, expected substrings, etc.).
-- **Not** used on live open traffic — McNemar requires paired binary labels on identical items, which streaming proxy traffic without ground truth does not provide.
+- **Not** used on live open traffic, McNemar requires paired binary labels on identical items, which streaming proxy traffic without ground truth does not provide.
 
 ```bash
 cogscope regression --suite benchmarks.yaml --policy policy.yaml \
@@ -71,7 +71,7 @@ cogscope watch --semantic
 
 - Embeds response text with **sentence-transformers** `all-MiniLM-L6-v2` (~80MB, CPU, downloaded once).
 - Compares baseline vs current embedding distributions via **Jensen-Shannon divergence** on a reduced projection.
-- **Strictly opt-in** — default `pip install cogscope` and `quickstart` are unchanged.
+- **Strictly opt-in**, default `pip install cogscope` and `quickstart` are unchanged.
 
 Implementation: `cogscope/drift/semantic.py`.
 
@@ -87,7 +87,7 @@ Implementation: `cogscope/drift/semantic.py`.
 
 ## Drift score
 
-The `drift_score` (0–1) from `DiffEngine` is a weighted summary of metric deltas — useful for ranking, not as a standalone alarm. Formal tests gate alerts.
+The `drift_score` (0 to 1) from `DiffEngine` is a weighted summary of metric deltas, useful for ranking, not as a standalone alarm. Formal tests gate alerts.
 
 ## Reports
 
@@ -103,4 +103,4 @@ Opt-in anonymous submissions feed the [Public Drift Log](../guides/public-drift-
 ## Related
 
 - [Fingerprinting](fingerprinting.md)
-- [FAQ](../faq.md) — gaming and pseudo-science objections
+- [FAQ](../faq.md), gaming and pseudo-science objections

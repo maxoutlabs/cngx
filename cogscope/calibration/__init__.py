@@ -1,4 +1,4 @@
-"""Model-agnostic calibration — per-model behavioral profiles and adaptive thresholds.
+"""Model-agnostic calibration, per-model behavioral profiles and adaptive thresholds.
 
 Cogscope must work across ALL LLMs (GPT-4o, Gemini, Claude, Llama, Mistral, etc.).
 Each model family has different reasoning styles:
@@ -8,9 +8,9 @@ Each model family has different reasoning styles:
 - Open-source models vary wildly
 
 This module provides:
-1. ModelProfile — behavioral baseline per model family
-2. AdaptiveThresholds — thresholds that adjust based on model profiles
-3. CalibrationEngine — learns profiles from observed data
+1. ModelProfile, behavioral baseline per model family
+2. AdaptiveThresholds, thresholds that adjust based on model profiles
+3. CalibrationEngine, learns profiles from observed data
 """
 
 from cogscope.calibration.profiles import (

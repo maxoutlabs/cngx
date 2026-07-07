@@ -5,7 +5,7 @@ and edge case in the Cogscope pipeline.
 """
 
 # ============================================================================
-# GOOD REASONING — Deep, verified, structured
+# GOOD REASONING, Deep, verified, structured
 # ============================================================================
 
 GOOD_MATH_REASONING = """
@@ -41,9 +41,9 @@ The nested loop has O(n²) complexity. For each item, it searches for matches in
 I can see that the `key` parameter is used for grouping, and `value` is the aggregation target.
 
 Step 3: Identifying issues
-1. The variable `temp` is reused across iterations — this could cause data leakage between groups
-2. The `try/except` on line 15 catches `Exception` broadly — this hides specific errors
-3. No input validation — if `data` is None, this crashes with AttributeError
+1. The variable `temp` is reused across iterations, this could cause data leakage between groups
+2. The `try/except` on line 15 catches `Exception` broadly, this hides specific errors
+3. No input validation, if `data` is None, this crashes with AttributeError
 
 Step 4: Checking edge cases
 - Empty list: Returns empty dict (correct)
@@ -54,7 +54,7 @@ Step 4: Checking edge cases
 Step 5: Verification
 Let me double-check my analysis of the O(n²) claim:
 The outer loop runs n times, inner loop runs n times for each. Yes, O(n²) is confirmed.
-For n=10000, that's 100M operations — definitely a performance concern.
+For n=10000, that's 100M operations, definitely a performance concern.
 
 The code is functional but has 3 bugs and a performance issue that should be addressed before production use.
 """
@@ -84,7 +84,7 @@ The evidence suggests moderate minimum wage increases do not significantly reduc
 """
 
 # ============================================================================
-# BAD REASONING — Shallow, no verification, overconfident
+# BAD REASONING, Shallow, no verification, overconfident
 # ============================================================================
 
 SHALLOW_MATH = "The answer is x = -2 and x = -3."
@@ -120,14 +120,14 @@ SELF_CORRECTING = """
 Step 1: Let me try factoring x² + 5x + 7.
 I need numbers that multiply to 7 and add to 5. That would be... 1 and 7? No, wait, 1 + 7 = 8 ≠ 5.
 
-Actually, let me reconsider. My mistake — this quadratic doesn't factor neatly over integers.
+Actually, let me reconsider. My mistake, this quadratic doesn't factor neatly over integers.
 
 Step 2: Using the quadratic formula
 x = (-b ± √(b² - 4ac)) / 2a
 x = (-5 ± √(25 - 28)) / 2
 x = (-5 ± √(-3)) / 2
 
-Step 3: Scratch that — let me double-check. The discriminant is 25 - 28 = -3, which is negative.
+Step 3: Scratch that, let me double-check. The discriminant is 25 - 28 = -3, which is negative.
 This means there are no real solutions, only complex ones.
 
 Step 4: The solutions are x = (-5 ± i√3) / 2

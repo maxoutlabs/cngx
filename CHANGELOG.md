@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Fresh public relaunch** under the name **Cogscope** (renamed from the private `rvc` package).
-- **Version reset to 0.1.0** — new version scheme for the open-source developer tool; supersedes the prior 1.0.0/2.0.0 mismatch in the private tree.
+- **Version reset to 0.1.0**, new version scheme for the open-source developer tool; supersedes the prior 1.0.0/2.0.0 mismatch in the private tree.
 - Enterprise/SaaS surfaces (`platform/`, `cloud/`, `sdk/`, `rvc-demo/`, `rvc-prod/`) moved to `_archive_pre_oss/`.
 - Phase-2 modules (correctness, robustness, governance, benchmarks, etc.) archived for future releases.
 
@@ -19,26 +19,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2026-02-11
 
 ### Added
-- **Claude/Anthropic adapter** — full support for Claude Opus, Sonnet, Haiku (3, 3.5, 4) with extended thinking extraction
-- **RBAC role system** — admin, member, viewer roles with scope-based enforcement
-- **Webhook notifications** — real-time alerts on gate blocks, drift detection, contract violations
-- **Batch enforcement API** — validate multiple prompts/fingerprints in a single API call
-- **Structured JSON logging** — production-grade log output with correlation IDs, compatible with ELK/Datadog
-- **Prometheus metrics** — `/metrics` endpoint with enforcement counters, latency histograms, active org gauges
-- **PostgreSQL support** — cloud database can use PostgreSQL for horizontal scaling via `COGSCOPE_DATABASE_URL`
-- **Streaming capture** — capture reasoning traces from streaming LLM responses
-- **GitHub Actions CI/CD** — automated testing, linting, and PyPI publishing on release
-- **MkDocs documentation site** — comprehensive docs with tutorials, API reference, contract authoring guide
+- **Claude/Anthropic adapter**, full support for Claude Opus, Sonnet, Haiku (3, 3.5, 4) with extended thinking extraction
+- **RBAC role system**, admin, member, viewer roles with scope-based enforcement
+- **Webhook notifications**, real-time alerts on gate blocks, drift detection, contract violations
+- **Batch enforcement API**, validate multiple prompts/fingerprints in a single API call
+- **Structured JSON logging**, production-grade log output with correlation IDs, compatible with ELK/Datadog
+- **Prometheus metrics**, `/metrics` endpoint with enforcement counters, latency histograms, active org gauges
+- **PostgreSQL support**, cloud database can use PostgreSQL for horizontal scaling via `COGSCOPE_DATABASE_URL`
+- **Streaming capture**, capture reasoning traces from streaming LLM responses
+- **GitHub Actions CI/CD**, automated testing, linting, and PyPI publishing on release
+- **MkDocs documentation site**, comprehensive docs with tutorials, API reference, contract authoring guide
 - **LICENSE file** (MIT)
 - **CHANGELOG.md**
 - **CONTRIBUTING.md**
 
 ### Changed
-- **Version bumped to 1.0.0** — production-ready release
-- **Cloud auth hardened** — API keys removed from query strings, secure cookie-based web UI auth
-- **Rate limiter** — configurable per org plan tier (free: 100/min, team: 500/min, enterprise: 2000/min)
-- **pyproject.toml** — updated with all new optional dependencies, proper classifiers
-- **CLI error handling** — all commands wrapped with structured error reporting
+- **Version bumped to 1.0.0**, production-ready release
+- **Cloud auth hardened**, API keys removed from query strings, secure cookie-based web UI auth
+- **Rate limiter**, configurable per org plan tier (free: 100/min, team: 500/min, enterprise: 2000/min)
+- **pyproject.toml**, updated with all new optional dependencies, proper classifiers
+- **CLI error handling**, all commands wrapped with structured error reporting
 
 ### Fixed
 - API key revoke now uses correct `AuditAction.API_KEY_REVOKE` instead of reusing `API_KEY_CREATE`

@@ -1,5 +1,5 @@
 # Deploy the public drift tracker to GitHub Pages (free tier).
-# Builds from tracker/data/ — no API keys, no paid services.
+# Builds from tracker/data/, no API keys, no paid services.
 
 name: Tracker Deploy
 

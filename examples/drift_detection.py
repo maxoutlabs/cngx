@@ -8,7 +8,7 @@ from cogscope.diff.formatter import DiffFormatter
 def simulate_drift():
     """Simulate behavioral drift and demonstrate detection."""
     print("=" * 60)
-    print("Cogscope — Drift Detection Demo")
+    print("Cogscope, Drift Detection Demo")
     print("=" * 60)
 
     tracer = CogscopeTracer(adapter="mock", model="test-model")

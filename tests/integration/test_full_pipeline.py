@@ -171,7 +171,7 @@ class TestFullPipeline:
         tracer.switch_adapter("mock", preset="uncertain")
         for i in range(5):
             tracer.capture(
-                prompt=f"Math problem {i+5}",
+                prompt=f"Math problem {i + 5}",
                 task_id="drift_test",
             )
 
