@@ -4,12 +4,12 @@ Procedure (diff / check population comparisons):
 1. Per-metric two-sample Mann-Whitney U test (non-parametric; scipy.stats).
 2. Benjamini-Hochberg false discovery rate correction across simultaneous tests
    (Benjamini & Hochberg, 1995).
-3. Omnibus decision via Fisher's method combining raw p-values of BH-rejected
-   metrics (Fisher, 1925).
+3. Omnibus decision via the Cauchy Combination Test (CCT; Liu & Xie, 2020),
+   which remains valid under arbitrary unknown dependency between metrics.
+   Per-metric raw p-values and effect sizes are reported alongside the global
+   CCT p-value for interpretability.
 
-This replaces ad hoc z-score cutoffs and hand-rolled "at least two metrics"
-rules for batch comparisons. Streaming live traffic uses ADWIN/Page-Hinkley
-instead (see streaming.py).
+Streaming live traffic uses KSWIN/MDDM instead (see streaming.py).
 """
 
 from __future__ import annotations
@@ -47,19 +47,29 @@ class MetricTestResult:
     is_length: bool
     baseline_mean: float
     current_mean: float
+    effect_size: float = 0.0
 
 
 @dataclass
 class BatchDriftResult:
-    """Outcome of BH + Fisher batch drift test."""
+    """Outcome of BH + CCT batch structural drift test."""
 
     should_alert: bool
-    fisher_p_value: float
-    fisher_statistic: float
+    cct_p_value: float
+    cct_statistic: float
     alpha: float
     metric_results: list[MetricTestResult] = field(default_factory=list)
     rejected_metrics: list[str] = field(default_factory=list)
     summary: str = ""
+
+    # Backward-compatible aliases for internal callers during transition
+    @property
+    def fisher_p_value(self) -> float:
+        return self.cct_p_value
+
+    @property
+    def fisher_statistic(self) -> float:
+        return self.cct_statistic
 
 
 def _metric_values(fingerprints: list[BehavioralFingerprint], metric: str) -> list[float]:
@@ -89,16 +99,66 @@ def benjamini_hochberg(
     return adjusted
 
 
-def fisher_combine(p_values: list[float]) -> tuple[float, float]:
-    """Fisher's method for combining independent p-values.
+def cohens_d(baseline_vals: list[float], current_vals: list[float]) -> float:
+    """Cohen's d effect size between two samples."""
+    if len(baseline_vals) < 2 or len(current_vals) < 2:
+        return 0.0
+    b = np.asarray(baseline_vals, dtype=float)
+    c = np.asarray(current_vals, dtype=float)
+    n1, n2 = len(b), len(c)
+    var1, var2 = np.var(b, ddof=1), np.var(c, ddof=1)
+    pooled = np.sqrt(((n1 - 1) * var1 + (n2 - 1) * var2) / max(n1 + n2 - 2, 1))
+    if pooled == 0:
+        return 0.0
+    return float((np.mean(c) - np.mean(b)) / pooled)
+
+
+def cct_combine(p_values: list[float]) -> tuple[float, float]:
+    """Cauchy Combination Test (Liu & Xie, 2020).
+
+    Combines p-values under arbitrary unknown dependency. The test statistic is
+    T = (1/K) * sum(tan((0.5 - p_i) * pi)). Under the global null, T follows a
+    standard Cauchy distribution.
 
     Returns (statistic, combined_p_value).
     """
     if not p_values:
         return 0.0, 1.0
     clipped = [max(min(p, 1.0 - 1e-16), 1e-16) for p in p_values]
-    stat, combined_p = stats.combine_pvalues(clipped, method="fisher")
-    return float(stat), float(combined_p)
+    statistic = float(np.mean([np.tan((0.5 - p) * np.pi) for p in clipped]))
+    # Two-sided tail against standard Cauchy null
+    combined_p = float(2.0 * stats.cauchy.sf(abs(statistic)))
+    return statistic, min(max(combined_p, 0.0), 1.0)
+
+
+def top_metric_contributors(
+    metric_results: list[MetricTestResult],
+    *,
+    rejected_only: bool = True,
+    limit: int = 3,
+) -> list[MetricTestResult]:
+    """Return metrics sorted by smallest p-value for human-readable summaries."""
+    pool = [m for m in metric_results if (not rejected_only or m.bh_rejected)]
+    return sorted(pool, key=lambda m: m.p_value)[:limit]
+
+
+def format_structural_drift_summary(result: BatchDriftResult) -> str:
+    """Human-readable structural drift summary with per-metric contributors."""
+    if not result.rejected_metrics:
+        return "No metrics rejected after Benjamini-Hochberg correction."
+
+    contributors = top_metric_contributors(result.metric_results)
+    contrib_text = ", ".join(f"{m.metric} (p={m.p_value:.3f})" for m in contributors)
+    if result.should_alert:
+        return (
+            f"Structural drift detected (global p={result.cct_p_value:.3f}); "
+            f"largest contributors: {contrib_text}"
+        )
+    return (
+        f"BH rejected {len(result.rejected_metrics)} metric(s) but global CCT "
+        f"p={result.cct_p_value:.3f} or length guard prevented alert. "
+        f"Contributors: {contrib_text}"
+    )
 
 
 def batch_drift_test(
@@ -108,18 +168,19 @@ def batch_drift_test(
     metrics: tuple[str, ...] = BATCH_METRICS,
     require_quality_metric: bool = True,
 ) -> BatchDriftResult:
-    """Run Mann-Whitney + BH + Fisher on two fingerprint populations."""
+    """Run Mann-Whitney + BH + CCT on two fingerprint populations."""
     if len(baseline_fps) < 3 or len(current_fps) < 3:
         return BatchDriftResult(
             should_alert=False,
-            fisher_p_value=1.0,
-            fisher_statistic=0.0,
+            cct_p_value=1.0,
+            cct_statistic=0.0,
             alpha=alpha,
             summary="Insufficient samples for batch drift test (need >=3 per side).",
         )
 
     raw_p: dict[str, float] = {}
     means: dict[str, tuple[float, float]] = {}
+    effect_sizes: dict[str, float] = {}
 
     for metric in metrics:
         b_vals = _metric_values(baseline_fps, metric)
@@ -127,6 +188,7 @@ def batch_drift_test(
         b_mean = float(np.mean(b_vals))
         c_mean = float(np.mean(c_vals))
         means[metric] = (b_mean, c_mean)
+        effect_sizes[metric] = cohens_d(b_vals, c_vals)
         try:
             _, p = stats.mannwhitneyu(b_vals, c_vals, alternative="two-sided")
             raw_p[metric] = float(p)
@@ -151,46 +213,35 @@ def batch_drift_test(
                 is_length=metric in LENGTH_METRICS,
                 baseline_mean=b_mean,
                 current_mean=c_mean,
+                effect_size=effect_sizes[metric],
             )
         )
         if rejected:
             rejected_names.append(metric)
             rejected_raw_ps.append(raw_p[metric])
 
-    fisher_stat, fisher_p = fisher_combine(rejected_raw_ps)
+    cct_stat, cct_p = cct_combine(rejected_raw_ps)
 
     quality_rejected = [m for m in rejected_names if m in QUALITY_METRICS]
     length_only = rejected_names and all(m in LENGTH_METRICS for m in rejected_names)
 
     should_alert = (
         len(rejected_names) >= 1
-        and fisher_p < alpha
+        and cct_p < alpha
         and not length_only
         and (not require_quality_metric or len(quality_rejected) >= 1)
     )
 
-    if not rejected_names:
-        summary = "No metrics rejected after Benjamini-Hochberg correction."
-    elif should_alert:
-        summary = (
-            f"Batch drift: Fisher p={fisher_p:.4f} across "
-            f"{len(rejected_names)} BH-rejected metrics."
-        )
-    else:
-        summary = (
-            f"BH rejected {len(rejected_names)} metric(s) but omnibus Fisher "
-            f"p={fisher_p:.4f} or quality/length guard prevented alert."
-        )
-
-    return BatchDriftResult(
+    result = BatchDriftResult(
         should_alert=should_alert,
-        fisher_p_value=fisher_p,
-        fisher_statistic=fisher_stat,
+        cct_p_value=cct_p,
+        cct_statistic=cct_stat,
         alpha=alpha,
         metric_results=metric_results,
         rejected_metrics=rejected_names,
-        summary=summary,
     )
+    result.summary = format_structural_drift_summary(result)
+    return result
 
 
 def outliers_from_batch(result: BatchDriftResult) -> list[dict]:
@@ -205,11 +256,13 @@ def outliers_from_batch(result: BatchDriftResult) -> list[dict]:
                 "metric": m.metric,
                 "p_value": m.p_value,
                 "bh_adjusted_p": m.bh_adjusted_p,
+                "effect_size": m.effect_size,
                 "baseline_mean": m.baseline_mean,
                 "current_value": m.current_mean,
                 "direction": direction,
                 "is_quality": m.is_quality,
                 "is_length": m.is_length,
+                "drift_type": "structural",
             }
         )
     return outliers

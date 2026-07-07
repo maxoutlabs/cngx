@@ -19,15 +19,33 @@ def run_watch(
         "--semantic",
         help="Enable optional local embedding drift signal (requires cogscope[semantic])",
     ),
+    otel: bool = typer.Option(
+        False,
+        "--otel",
+        help="Forward OTel GenAI spans with fingerprint attributes to OTLP (requires cogscope[otel])",
+    ),
+    otel_endpoint: str = typer.Option(
+        "http://localhost:4318",
+        "--otel-endpoint",
+        help="OTLP HTTP endpoint when --otel is set",
+    ),
 ) -> None:
     """Start local proxy and live dashboard."""
     from cogscope.core.config import get_config
+    from cogscope.observability.otel import configure_otel
     from cogscope.proxy.analysis import set_semantic_analysis_enabled
     from cogscope.proxy.config import ProxyConfig
     from cogscope.proxy.server import run_proxy
     from cogscope.tui.dashboard import run_dashboard
 
     set_semantic_analysis_enabled(semantic)
+
+    if otel:
+        try:
+            configure_otel(enabled=True, endpoint=otel_endpoint)
+        except ImportError as exc:
+            console.print(f"[red]{exc}[/]")
+            raise typer.Exit(1) from exc
 
     if host not in ("127.0.0.1", "localhost", "::1"):
         console.print("[red]Proxy only binds to localhost for safety.[/]")

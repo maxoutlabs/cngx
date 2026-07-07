@@ -35,6 +35,14 @@ class DriftConfig(BaseModel):
     alert_on_critical: bool = True
 
 
+class OtelConfig(BaseModel):
+    """Optional OpenTelemetry OTLP export (off by default)."""
+
+    enabled: bool = False
+    endpoint: str = "http://localhost:4318"
+    service_name: str = "cogscope-proxy"
+
+
 class ServerConfig(BaseModel):
     """Configuration for the optional web server."""
 
@@ -56,6 +64,7 @@ class CogscopeConfig(BaseSettings):
     storage: StorageConfig = Field(default_factory=StorageConfig)
     capture: CaptureConfig = Field(default_factory=CaptureConfig)
     drift: DriftConfig = Field(default_factory=DriftConfig)
+    otel: OtelConfig = Field(default_factory=OtelConfig)
     server: ServerConfig = Field(default_factory=ServerConfig)
 
     # LLM defaults
