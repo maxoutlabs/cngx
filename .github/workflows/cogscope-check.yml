@@ -4,7 +4,7 @@ name: Cogscope Policy Check
 
 on:
   push:
-    branches: [main, oss-launch]
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:

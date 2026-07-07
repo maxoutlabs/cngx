@@ -125,10 +125,21 @@ class TestDriftDetectorWithRealData:
     """Test drift detector with fingerprints from known-different outputs."""
 
     def test_drift_low_for_consistent_behavior(self, fresh_db):
-        """Consistent outputs should show low drift."""
+        """Consistent outputs should show low drift against a pinned baseline."""
+        from cogscope.versioning.pinning import PinningManager
+
         extractor = FingerprintExtractor()
-        # Store 10 fingerprints from same output
-        for i in range(10):
+        baseline_trace = make_trace(
+            GOOD_MATH_REASONING,
+            task_id="consistent",
+            trace_id="cons_000",
+        )
+        fresh_db.save_trace(baseline_trace)
+        baseline_fp = extractor.extract(baseline_trace)
+        fresh_db.save_fingerprint(baseline_fp)
+        PinningManager(fresh_db).pin(trace_id="cons_000", name="consistent_bl")
+
+        for i in range(1, 10):
             trace = make_trace(
                 GOOD_MATH_REASONING,
                 task_id="consistent",
@@ -139,7 +150,10 @@ class TestDriftDetectorWithRealData:
             fresh_db.save_fingerprint(fp)
 
         detector = DriftDetector(fresh_db)
-        report = detector.detect_drift(task_id="consistent")
+        report = detector.detect_drift(
+            task_id="consistent",
+            baseline_name="consistent_bl",
+        )
         assert report is not None
         assert (
             report.drift_score < 0.3

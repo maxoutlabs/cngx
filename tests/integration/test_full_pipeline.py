@@ -8,7 +8,6 @@ import pytest
 from cogscope.capture.tracer import CogscopeTracer
 from cogscope.diff.engine import DiffEngine
 from cogscope.drift.detector import DriftDetector
-from cogscope.diff.engine import DiffEngine
 from cogscope.fingerprint.extractor import FingerprintExtractor
 from cogscope.storage.database import Database
 from cogscope.versioning.baseline import BaselineManager
