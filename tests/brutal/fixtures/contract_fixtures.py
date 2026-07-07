@@ -1,12 +1,12 @@
 """
-Contract fixtures for testing — covers every constraint type and severity level.
+Contract fixtures for testing, covers every constraint type and severity level.
 """
 
 STRICT_MATH_CONTRACT = """
 name: strict_math_solver
 version: "1.0"
 domain: math
-description: "Strict contract for math reasoning — blocks shallow answers"
+description: "Strict contract for math reasoning, blocks shallow answers"
 
 depth:
   min: 3
@@ -43,7 +43,7 @@ LENIENT_CONTRACT = """
 name: lenient_check
 version: "1.0"
 domain: general
-description: "Very lenient — almost everything passes"
+description: "Very lenient, almost everything passes"
 
 depth:
   min: 1
@@ -58,7 +58,7 @@ IMPOSSIBLE_CONTRACT = """
 name: impossible_contract
 version: "1.0"
 domain: general
-description: "Impossibly strict — nothing can pass"
+description: "Impossibly strict, nothing can pass"
 
 depth:
   min: 100

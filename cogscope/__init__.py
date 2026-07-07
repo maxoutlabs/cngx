@@ -1,5 +1,5 @@
 """
-Cogscope — behavioral contract enforcement for LLM systems.
+Cogscope, behavioral contract enforcement for LLM systems.
 
 Capture reasoning traces, extract behavioral fingerprints, validate YAML
 contracts, detect drift, and gate deployments in CI/CD.

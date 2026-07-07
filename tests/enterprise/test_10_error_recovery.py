@@ -109,11 +109,11 @@ class TestDatabaseErrorRecovery:
             token_usage=TokenUsage(),
         )
         tmp_db.save_trace(trace)
-        # Second save with same ID — should either overwrite or raise
+        # Second save with same ID, should either overwrite or raise
         try:
             tmp_db.save_trace(trace)
         except Exception:
-            pass  # Expected — some DBs reject duplicates
+            pass  # Expected, some DBs reject duplicates
         # Either way, database should still work
         stats = tmp_db.get_stats()
         assert stats["traces"] >= 1

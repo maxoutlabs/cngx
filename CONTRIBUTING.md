@@ -78,7 +78,7 @@ Hosted SaaS and marketing-site code from earlier development is **not** in this 
 
 ## Proposing a new behavioral metric
 
-1. Read `cogscope/fingerprint/metrics.py` — `MetricsCalculator` holds regex patterns and counting logic for each signal.
+1. Read `cogscope/fingerprint/metrics.py`, `MetricsCalculator` holds regex patterns and counting logic for each signal.
 2. Add your metric computation there (keep it fast and deterministic; prefer explicit patterns over NLP).
 3. Wire the new field through `cogscope/fingerprint/extractor.py` into `BehavioralFingerprint` in `cogscope/core/models.py` if it is a new top-level metric.
 4. If the metric should influence drift alerting, update `cogscope/calibration/profiles.py` (`QUALITY_METRICS` / `LENGTH_METRICS`) and review `cogscope/drift/detector.py`.
@@ -90,8 +90,8 @@ Design note: metrics are heuristics. Document what each pattern captures and wha
 
 1. Create `cogscope/capture/adapters/your_provider.py`.
 2. Subclass `BaseAdapter` in `cogscope/capture/adapters/base.py` and implement:
-   - `async def call(...)` — primary async entry point
-   - `def call_sync(...)` — synchronous wrapper (often `asyncio.run` or shared core)
+   - `async def call(...)`, primary async entry point
+   - `def call_sync(...)`, synchronous wrapper (often `asyncio.run` or shared core)
    - Streaming via `StreamChunk` if the provider supports it
 3. Register the adapter in `cogscope/capture/adapters/__init__.py` and in `CogscopeTracer`’s adapter map (`cogscope/capture/tracer.py`).
 4. Add routing in `cogscope/proxy/app.py` if the proxy should forward that provider’s API shape.

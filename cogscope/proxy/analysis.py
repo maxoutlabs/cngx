@@ -171,7 +171,7 @@ async def analyze_completed_call(
                     verification_steps=fp.verification_steps,
                     hedging_ratio=fp.hedging_ratio,
                     no_baseline=True,
-                    alert_message="No baseline pinned — captured and fingerprinted only.",
+                    alert_message="No baseline pinned, captured and fingerprinted only.",
                 )
             )
             return

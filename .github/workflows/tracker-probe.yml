@@ -1,11 +1,11 @@
 # =============================================================================
-# OPTIONAL MAINTAINER PROBE — OFF BY DEFAULT
+# OPTIONAL MAINTAINER PROBE, OFF BY DEFAULT
 # =============================================================================
 # This workflow is NOT required for the tracker to work. Community submissions
 # via `cogscope submit` are the primary data source.
 #
 # To enable: set repository variable ENABLE_TRACKER_PROBE = true
-# Cost: uses your API keys (repository secrets) — real money per run.
+# Cost: uses your API keys (repository secrets), real money per run.
 # Budget: HARD CAP of 5 API calls per run (see PROBE_MAX_CALLS below).
 # =============================================================================
 
@@ -40,7 +40,7 @@ jobs:
           PROBE_MAX_CALLS: ${{ env.PROBE_MAX_CALLS }}
         run: |
           python - <<'PY'
-          """Optional maintainer probe — max 5 mock/openai calls, writes local JSON only."""
+          """Optional maintainer probe, max 5 mock/openai calls, writes local JSON only."""
           import json
           import os
           import uuid
@@ -58,7 +58,7 @@ jobs:
 
           api_key = os.environ.get("OPENAI_API_KEY")
           if not api_key:
-              print("No OPENAI_API_KEY — probe skipped (set secret to enable live calls)")
+              print("No OPENAI_API_KEY, probe skipped (set secret to enable live calls)")
               raise SystemExit(0)
 
           from cogscope.capture.tracer import CogscopeTracer
@@ -79,5 +79,5 @@ jobs:
               path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
               print(f"Wrote {path}")
 
-          print(f"Probe complete — {min(len(prompts), max_calls)} call(s) max")
+          print(f"Probe complete, {min(len(prompts), max_calls)} call(s) max")
           PY

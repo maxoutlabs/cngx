@@ -1,4 +1,4 @@
-/* Cogscope Drift Tracker — terminal-inspired static theme */
+/* Cogscope Drift Tracker, terminal-inspired static theme */
 
 :root {
   --bg: #0c0f12;
@@ -200,7 +200,7 @@ section h2::before {
   outline-offset: 2px;
 }
 
-/* Chart grid — small multiples */
+/* Chart grid, small multiples */
 .chart-panel {
   background: var(--bg-card);
   border: 1px solid var(--border);

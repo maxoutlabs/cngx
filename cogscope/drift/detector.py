@@ -5,7 +5,7 @@ deviate significantly from the pinned baseline's own historical distribution for
 that task and model. Live proxy traffic uses frouros ADWIN/Page-Hinkley streaming
 detectors per metric (see streaming.py). Batch diff/check uses Mann-Whitney with
 Benjamini-Hochberg FDR and Fisher's combined test (see batch.py). Never alert on
-a single metric in isolation — especially not output length alone.
+a single metric in isolation, especially not output length alone.
 
 Automatically detects behavioral drift over time.
 """

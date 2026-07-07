@@ -1,4 +1,4 @@
-"""cogscope submit — opt-in anonymous drift data for the public tracker."""
+"""cogscope submit, opt-in anonymous drift data for the public tracker."""
 
 from __future__ import annotations
 
@@ -301,7 +301,7 @@ def run_submit(
     text = json.dumps(preview, indent=2)
     console.print(
         Panel(
-            "[bold]Preview — exact payload(s) to submit[/]\n\n"
+            "[bold]Preview, exact payload(s) to submit[/]\n\n"
             "Contains ONLY model name, timestamp, numeric metrics, drift score, "
             "and your baseline label. [bold]No prompts or outputs.[/]",
             border_style="cyan",
@@ -310,7 +310,7 @@ def run_submit(
     console.print(Syntax(text, "json", theme="monokai", line_numbers=False))
 
     if dry_run:
-        console.print("[dim]Dry run — nothing sent.[/]")
+        console.print("[dim]Dry run, nothing sent.[/]")
         return 0
 
     if not yes:
@@ -335,7 +335,7 @@ def run_submit(
             console.print(
                 Panel(
                     f"[green]OK[/] Wrote [cyan]{path}[/]\n\n"
-                    "No GitHub CLI access — open a PR manually:\n"
+                    "No GitHub CLI access, open a PR manually:\n"
                     f"  1. Copy to [cyan]tracker/data/community/{payload['record_id']}.json[/]\n"
                     "  2. git checkout -b submit/your-name\n"
                     "  3. git add tracker/data/community/\n"

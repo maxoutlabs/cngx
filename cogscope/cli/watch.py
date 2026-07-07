@@ -1,4 +1,4 @@
-"""cogscope watch — proxy + live TUI."""
+"""cogscope watch, proxy + live TUI."""
 
 from __future__ import annotations
 

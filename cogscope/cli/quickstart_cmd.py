@@ -1,4 +1,4 @@
-"""cogscope quickstart — zero-key demo of catching silent regression."""
+"""cogscope quickstart, zero-key demo of catching silent regression."""
 
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ def run_quickstart() -> None:
         Panel(
             "[bold white]Cogscope quickstart[/]\n\n"
             "No API keys. No setup. Watch what happens when model reasoning\n"
-            "silently degrades — and how Cogscope catches it.",
+            "silently degrades, and how Cogscope catches it.",
             border_style="cyan",
             padding=(1, 2),
         )
@@ -49,7 +49,7 @@ def run_quickstart() -> None:
         console.print(f"  [dim]{without.silent_failure_description}[/]")
     console.print()
 
-    # Deterministic degraded fingerprint — correct answer, shallow reasoning
+    # Deterministic degraded fingerprint, correct answer, shallow reasoning
     shallow_trace = ReasoningTrace(
         id="quickstart_shallow",
         timestamp=datetime.utcnow(),
@@ -108,11 +108,11 @@ def run_quickstart() -> None:
     console.print(
         Panel(
             "[bold green]That's the core idea.[/]\n\n"
-            "The model still gave a plausible answer — but skipped the reasoning\n"
+            "The model still gave a plausible answer, but skipped the reasoning\n"
             "steps your policy requires. Without Cogscope that ships silently.\n\n"
             "Next: [cyan]cogscope watch[/] to fingerprint live traffic,\n"
             "[cyan]cogscope pin --label baseline[/] to set normal behavior,\n"
-            "and get alerted only on corroborated drift — not shorter answers alone.\n\n"
+            "and get alerted only on corroborated drift, not shorter answers alone.\n\n"
             f"[dim]Completed in {elapsed:.1f}s[/]",
             title="[bold]Next[/]",
             border_style="green",

@@ -16,10 +16,10 @@ Real output from a zero-key run (recorded with Rich `Console(record=True)`):
 
 The command runs a mock scenario in under 30 seconds:
 
-1. **Without Cogscope** — A pipeline completes and downstream systems would run, but reasoning assumptions were violated (verification skipped, confidence too low).
-2. **With Cogscope** — The same shallow behavior is **blocked** against a policy: reasoning depth too low, no verification steps detected.
+1. **Without Cogscope**: a pipeline completes and downstream systems would run, but reasoning assumptions were violated (verification skipped, confidence too low).
+2. **With Cogscope**: the same shallow behavior is **blocked** against a policy (reasoning depth too low, no verification steps detected).
 
-The demo uses the mock adapter and a deterministic fingerprint so the BLOCKED result is reliable every run — not random LLM variance.
+The demo uses the mock adapter and a deterministic fingerprint so the BLOCKED result is reliable every run, not random LLM variance.
 
 To regenerate this image after UI changes:
 

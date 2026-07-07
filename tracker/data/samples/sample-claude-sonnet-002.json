@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "sample": true,
-  "_comment": "Demonstration data only — timeline point 2.",
+  "_comment": "Demonstration data only, timeline point 2.",
   "record_id": "sample-claude-sonnet-002",
   "timestamp": "2026-02-05T14:30:00Z",
   "model": "claude-sonnet-4-20250514",

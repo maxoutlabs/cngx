@@ -18,7 +18,7 @@ console = Console()
 
 app = typer.Typer(
     name="cogscope",
-    help="Cogscope — observe LLM reasoning, detect drift, check policies",
+    help="Cogscope, observe LLM reasoning, detect drift, check policies",
     add_completion=False,
     pretty_exceptions_enable=True,
     pretty_exceptions_short=True,
@@ -56,7 +56,7 @@ def init(
     if interactive:
         console.print(
             Panel(
-                "[bold]Cogscope setup[/]\nQuick questions — or pass [cyan]--yes[/] to skip.",
+                "[bold]Cogscope setup[/]\nQuick questions, or pass [cyan]--yes[/] to skip.",
                 border_style="cyan",
             )
         )
@@ -96,9 +96,9 @@ def init(
         Panel(
             f"[green]OK[/] Ready at {cogscope_path.resolve()}\n\n"
             "[bold]Try next:[/]\n"
-            "  [cyan]cogscope quickstart[/]  — 30-second demo, no API keys\n"
-            "  [cyan]cogscope watch[/]       — local proxy + live dashboard\n"
-            "  [cyan]cogscope pin --label baseline[/] — pin recent behavior",
+            "  [cyan]cogscope quickstart[/]  30-second demo, no API keys\n"
+            "  [cyan]cogscope watch[/]       local proxy + live dashboard\n"
+            "  [cyan]cogscope pin --label baseline[/]  pin recent behavior",
             title="[bold]Cogscope[/]",
         )
     )
@@ -190,7 +190,7 @@ def diff_cmd(
             formatter.format_rich(d)
 
 
-# Register as `diff` without clashing with diff typer group — use callback
+# Register as `diff` without clashing with diff typer group, use callback
 app.command("diff")(diff_cmd)
 
 

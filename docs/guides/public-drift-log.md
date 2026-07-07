@@ -1,6 +1,6 @@
 # The Public Drift Log
 
-The **Cogscope Drift Tracker** is a free, static site showing behavioral fingerprint trends over time — built from opt-in community data, not a maintainer-funded scraper.
+The **Cogscope Drift Tracker** is a static site showing behavioral fingerprint trends over time, built from opt-in community submissions.
 
 - **Source:** `tracker/` in the repository
 - **Site:** built by `tracker/build.py`, deployed to GitHub Pages

@@ -1,4 +1,4 @@
-"""cogscope report — drift summary for sharing."""
+"""cogscope report, drift summary for sharing."""
 
 from __future__ import annotations
 
@@ -59,7 +59,7 @@ def report(
     alert_count = 0
     rows_html = []
     for fp in sorted(fingerprints, key=lambda x: x.timestamp, reverse=True)[:30]:
-        drift_str = "—"
+        drift_str = "n/a"
         if baseline_fp:
             hist = db.get_fingerprints_by_task(fp.task_id, limit=30)
             assessment = detector.assess_against_pinned_baseline(

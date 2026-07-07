@@ -204,7 +204,7 @@ class BehaviorContract(BaseModel):
     def get_hash(self) -> str:
         """Get deterministic hash of contract for versioning.
 
-        Cached after first computation — contracts are typically immutable
+        Cached after first computation, contracts are typically immutable
         after loading, so the hash doesn't change.
         """
         # Use object __dict__ for caching (avoids Pydantic field restriction)

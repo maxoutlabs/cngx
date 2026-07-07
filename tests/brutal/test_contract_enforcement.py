@@ -105,7 +105,7 @@ class TestStrictMathContract:
         )
 
     def test_self_correcting_passes_or_warns(self):
-        """Self-correcting response has depth and verification — should not be blocked."""
+        """Self-correcting response has depth and verification, should not be blocked."""
         result = self._validate(SELF_CORRECTING)
         assert not result.blocked, (
             f"Self-correcting response should not be BLOCKED (it has depth and verification). "
@@ -239,7 +239,7 @@ class TestAllConstraintsContract:
     def test_good_math_with_all_constraints(self):
         """Good math reasoning should handle most constraints."""
         result = self._validate(GOOD_MATH_REASONING)
-        # Should not be blocked — good reasoning meets most constraints
+        # Should not be blocked, good reasoning meets most constraints
         assert not result.blocked, (
             f"Good math vs all constraints should not block. "
             f"BLOCK violations: {[v.message for v in result.violations if v.severity == Severity.BLOCK]}"
@@ -289,7 +289,7 @@ class TestContractSerialization:
 
 
 class TestWarnOnlyContract:
-    """Warn-only contract should never block or fail — only warn."""
+    """Warn-only contract should never block or fail, only warn."""
 
     def setup_method(self):
         self.extractor = FingerprintExtractor()
@@ -311,7 +311,7 @@ class TestWarnOnlyContract:
         """Warn-only violations should still be reported."""
         result = self._validate(SHALLOW_MATH)
         # Shallow answer vs depth.min=5 should triggers at least one warn
-        assert result.warn_count >= 0  # this is valid — may or may not have warns
+        assert result.warn_count >= 0  # this is valid, may or may not have warns
 
     def test_hedging_only_warns(self):
         """Hedging response with warn-only should not fail."""

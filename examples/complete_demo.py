@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Cogscope Complete Product Demo — Zero API Keys Required
+Cogscope Complete Product Demo, Zero API Keys Required
 
 This script demonstrates every major Cogscope capability using the mock adapter.
 Run it to see the full product in action:
@@ -182,12 +182,12 @@ def demo_enforcement():
         )
     )
     result_pass = gate.run(drift_score=0.05, benchmark_accuracy=0.95, stability_score=0.98)
-    console.print(f"    Result: [green]PASS[/] — Exit code {int(result_pass.exit_code)}")
+    console.print(f"    Result: [green]PASS[/], Exit code {int(result_pass.exit_code)}")
 
     step(9, "Run enforcement gate (BLOCK scenario)")
     result_block = gate.run(drift_score=0.5, benchmark_accuracy=0.6, stability_score=0.4)
     status = "[red]BLOCKED[/]" if not result_block.passed else "[green]PASS[/]"
-    console.print(f"    Result: {status} — Exit code {int(result_block.exit_code)}")
+    console.print(f"    Result: {status}, Exit code {int(result_block.exit_code)}")
     for check in result_block.checks:
         icon = "✓" if check.passed else "✗"
         color = "green" if check.passed else "red"
@@ -227,7 +227,7 @@ def demo_github_actions():
 def main():
     console.print(
         Panel(
-            "[bold white]Cogscope — Behavioral Contract Enforcement[/]\n"
+            "[bold white]Cogscope, Behavioral Contract Enforcement[/]\n"
             "[dim]Complete Product Demo • Zero API Keys Required[/]\n\n"
             "[cyan]This demo exercises core product capabilities[/]\n"
             "[cyan]using the built-in mock adapter (no network access).[/]",

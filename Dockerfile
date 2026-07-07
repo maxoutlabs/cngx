@@ -1,4 +1,4 @@
-# Cogscope local proxy — optional container for home server / VPS
+# Cogscope local proxy, optional container for home server / VPS
 #
 # Runs the ASGI reverse proxy only (not a multi-service SaaS stack).
 # Forwards LLM traffic, fingerprints on the side. API keys via env at runtime.

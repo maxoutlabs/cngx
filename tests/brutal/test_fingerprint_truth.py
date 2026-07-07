@@ -48,7 +48,7 @@ class TestDepthDetection:
         ), f"Deep reasoning ({deep.depth}) must have higher depth than shallow ({shallow.depth})"
 
     def test_deep_reasoning_depth_at_least_3(self):
-        """Good math reasoning has 4 clearly labeled steps — must detect >= 3."""
+        """Good math reasoning has 4 clearly labeled steps, must detect >= 3."""
         fp = self.extractor.extract(make_trace(GOOD_MATH_REASONING))
         assert fp.depth >= 3, f"Expected depth >= 3 for 4-step reasoning, got {fp.depth}"
 
@@ -96,7 +96,7 @@ class TestVerificationDetection:
         self.extractor = FingerprintExtractor()
 
     def test_verified_math_detected(self):
-        """Good math reasoning explicitly verifies — must detect > 0 verification steps."""
+        """Good math reasoning explicitly verifies, must detect > 0 verification steps."""
         fp = self.extractor.extract(make_trace(GOOD_MATH_REASONING))
         assert (
             fp.verification_steps > 0
@@ -138,7 +138,7 @@ class TestHedgingDetection:
         ), f"Hedging-heavy response should have hedging_ratio > 0.3, got {fp.hedging_ratio:.3f}"
 
     def test_confident_response_has_low_hedging(self):
-        """Good math reasoning is assertive — low hedging."""
+        """Good math reasoning is assertive, low hedging."""
         fp = self.extractor.extract(make_trace(GOOD_MATH_REASONING))
         assert (
             fp.hedging_ratio < 0.3
@@ -184,7 +184,7 @@ class TestSelfCorrectionDetection:
     def test_clean_response_no_corrections(self):
         """Clean good reasoning has no corrections."""
         fp = self.extractor.extract(make_trace(GOOD_MATH_REASONING))
-        # Good math reasoning is clean — no "wait", "actually"
+        # Good math reasoning is clean, no "wait", "actually"
         # but it might match on verify language, so just check it's lower
         correcting = self.extractor.extract(make_trace(SELF_CORRECTING))
         assert correcting.correction_count > fp.correction_count, (

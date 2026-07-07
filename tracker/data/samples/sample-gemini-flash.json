@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "sample": true,
-  "_comment": "Demonstration data only — not from live API calls. Shows elevated drift in sample set.",
+  "_comment": "Demonstration data only, not from live API calls. Shows elevated drift in sample set.",
   "record_id": "sample-gemini-flash-001",
   "timestamp": "2026-01-15T09:15:00Z",
   "model": "gemini-2.5-flash",

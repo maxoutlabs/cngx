@@ -26,7 +26,7 @@ Zero-key demo of silent reasoning regression caught by policy check.
 cogscope quickstart
 ```
 
-Completes in ~0.5–1s. Shows BLOCKED policy result.
+Completes in ~0.5 to 1s. Shows BLOCKED policy result.
 
 ## watch
 
@@ -130,4 +130,4 @@ Still available for power users:
 | `ANTHROPIC_API_KEY` | Forward Anthropic traffic |
 | `GOOGLE_API_KEY` | Gemini adapter / proxy |
 
-API keys are read from the environment for forwarding only — never logged or written to DuckDB.
+API keys are read from the environment for forwarding only, never logged or written to DuckDB.

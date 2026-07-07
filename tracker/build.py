@@ -4,7 +4,7 @@
 Reads JSON records from tracker/data/ (samples + community), aggregates
 per model, and writes tracker/site/ (index.html, data.js, static assets).
 
-No framework — plain Python 3.10+ and Chart.js from CDN.
+No framework, plain Python 3.10+ and Chart.js from CDN.
 """
 
 from __future__ import annotations
@@ -95,7 +95,7 @@ def render_html(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Public, opt-in behavioral drift tracker for LLM providers — community-submitted fingerprints over time.">
+  <meta name="description" content="Public, opt-in behavioral drift tracker for LLM providers, community-submitted fingerprints over time.">
   <meta name="color-scheme" content="dark">
   <title>Cogscope Drift Tracker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -109,7 +109,7 @@ def render_html(
   <div class="shell">
     <header class="site-header">
       <h1><span>&gt;</span> Cogscope Drift Tracker</h1>
-      <p class="tagline">Public, checkable evidence of how LLM reasoning behavior changes over time — from opt-in community fingerprints, not one company's marketing.</p>
+      <p class="tagline">Public, checkable evidence of how LLM reasoning behavior changes over time, from opt-in community fingerprints, not one company's marketing.</p>
       <div class="meta-row">
         <span>{record_count} record{"s" if record_count != 1 else ""} · {len(models)} model{"s" if len(models) != 1 else ""}</span>
         {sample_badge}
@@ -118,17 +118,17 @@ def render_html(
 
     <section class="explainer" aria-labelledby="what-heading">
       <h2 id="what-heading">What is this?</h2>
-      <p><strong>Cogscope</strong> fingerprints how a model <em>reasons</em> — depth, verification steps, hedging — not just the final answer text. Providers ship silent behavioral regressions after updates. This page collects <strong>anonymous, numeric drift metrics</strong> submitted by users who pinned their own baselines.</p>
-      <p>It is community evidence you can verify: no prompts, no outputs, only aggregated metrics from <code>cogscope submit</code>. A spike in drift score or a drop in verification steps is a signal worth investigating — not proof by itself.</p>
+      <p><strong>Cogscope</strong> fingerprints how a model <em>reasons</em>, depth, verification steps, hedging, not just the final answer text. Providers ship silent behavioral regressions after updates. This page collects <strong>anonymous, numeric drift metrics</strong> submitted by users who pinned their own baselines.</p>
+      <p>It is community evidence you can verify: no prompts, no outputs, only aggregated metrics from <code>cogscope submit</code>. A spike in drift score or a drop in verification steps is a signal worth investigating, not proof by itself.</p>
     </section>
 
     <section aria-labelledby="charts-heading">
       <h2 id="charts-heading">Metrics over time</h2>
-      <p style="color: var(--text-muted); font-size: 0.875rem; margin: 0 0 1rem;">Select a model. Each chart uses its own scale — counts and ratios are never overlaid on one axis.</p>
+      <p style="color: var(--text-muted); font-size: 0.875rem; margin: 0 0 1rem;">Select a model. Each chart uses its own scale, counts and ratios are never overlaid on one axis.</p>
       <div id="model-tabs" class="model-tabs" role="tablist" aria-label="Model filter"></div>
       <div class="chart-panel">
         <div class="chart-panel-header">
-          <h3>Model: <span id="active-model-label">—</span></h3>
+          <h3>Model: <span id="active-model-label">, </span></h3>
           <span id="model-badge" class="badge badge--sample">sample data</span>
         </div>
         <div class="chart-grid">
@@ -141,19 +141,19 @@ def render_html(
             <div class="chart-wrap"><canvas id="chart-verification" role="img" aria-label="Verification steps over time"></canvas></div>
           </div>
           <div class="chart-card">
-            <h4>Hedging ratio <span>(0–1)</span></h4>
+            <h4>Hedging ratio <span>(0 to 1)</span></h4>
             <div class="chart-wrap"><canvas id="chart-hedging" role="img" aria-label="Hedging ratio over time"></canvas></div>
           </div>
           <div class="chart-card">
-            <h4>Drift score <span>(0–1 vs baseline)</span></h4>
+            <h4>Drift score <span>(0 to 1 vs baseline)</span></h4>
             <div class="chart-wrap"><canvas id="chart-drift" role="img" aria-label="Drift score over time"></canvas></div>
           </div>
         </div>
         <div class="reading-guide">
           <strong style="color: var(--text);">How to read these charts</strong>
           <ul>
-            <li><strong>Depth</strong> and <strong>verification</strong> are integer counts from regex/heuristic fingerprinting — higher usually means more explicit reasoning structure.</li>
-            <li><strong>Hedging ratio</strong> measures uncertain vs confident language (0–1).</li>
+            <li><strong>Depth</strong> and <strong>verification</strong> are integer counts from regex/heuristic fingerprinting, higher usually means more explicit reasoning structure.</li>
+            <li><strong>Hedging ratio</strong> measures uncertain vs confident language (0 to 1).</li>
             <li><strong>Drift score</strong> is relative to the submitter's own pinned baseline, not a universal benchmark.</li>
             <li>Yellow points indicate <strong>sample/demo</strong> records, not live API measurements.</li>
           </ul>
@@ -194,7 +194,7 @@ cogscope quickstart</pre>
     </section>
 
     <footer class="site-footer">
-      <p>Built from opt-in <code>cogscope submit</code> data. Metrics only — never prompts or model outputs.</p>
+      <p>Built from opt-in <code>cogscope submit</code> data. Metrics only, never prompts or model outputs.</p>
       <p><a href="{GITHUB_REPO}">github.com/aadi-joshi/cogscope</a> · <a href="https://aadi-joshi.github.io/cogscope/">This tracker</a></p>
     </footer>
   </div>
@@ -234,7 +234,7 @@ def main() -> None:
     SITE_DIR.mkdir(parents=True, exist_ok=True)
     records = load_records()
     if not records:
-        print("WARN: no records found — writing empty site")
+        print("WARN: no records found, writing empty site")
     by_model = aggregate_by_model(records)
     annotations = load_annotations()
     copy_static_assets()

@@ -1,5 +1,5 @@
 /**
- * Cogscope Drift Tracker — client-side charts (Chart.js).
+ * Cogscope Drift Tracker, client-side charts (Chart.js).
  * Expects window.TRACKER_DATA and window.TRACKER_META from data.js.
  */
 (function () {
@@ -101,7 +101,7 @@
     const badge = document.getElementById("model-badge");
     const title = document.getElementById("active-model-label");
 
-    if (title) title.textContent = active || "—";
+    if (title) title.textContent = active || "n/a";
     if (badge) {
       const hasSample = recs.some((r) => r.sample);
       badge.textContent = hasSample ? "sample data" : "community data";
@@ -121,12 +121,12 @@
     makeChart("chart-hedging", "Hedging ratio", "hedging_ratio", {
       min: 0,
       max: 1,
-      title: { display: true, text: "0–1", color: TICK, font: { size: 10 } },
+      title: { display: true, text: "0 to 1", color: TICK, font: { size: 10 } },
     });
     makeChart("chart-drift", "Drift score", "drift_score", {
       min: 0,
       max: 1,
-      title: { display: true, text: "0–1", color: TICK, font: { size: 10 } },
+      title: { display: true, text: "0 to 1", color: TICK, font: { size: 10 } },
     });
   }
 
@@ -162,7 +162,7 @@
     list.innerHTML = annotations
       .map(
         (a) =>
-          `<li><strong>${a.date}</strong> — ${a.label}` +
+          `<li><strong>${a.date}</strong>, ${a.label}` +
           (a.source_url ? ` <a href="${a.source_url}" rel="noopener">source</a>` : "") +
           "</li>"
       )

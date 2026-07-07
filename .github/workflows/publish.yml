@@ -55,13 +55,13 @@ jobs:
       - name: Install built package
         run: pip install dist/*.whl
 
-      - name: Smoke test — CLI
+      - name: Smoke test, CLI
         run: |
           cogscope version
           cogscope --help
           cogscope quickstart
 
-      - name: Smoke test — Python import
+      - name: Smoke test, Python import
         run: python -c "from cogscope import __version__; from cogscope.capture.tracer import CogscopeTracer; print(__version__)"
 
   publish-pypi:

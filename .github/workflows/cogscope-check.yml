@@ -45,13 +45,13 @@ jobs:
       - name: Init Cogscope
         run: cogscope init --yes
 
-      - name: Policy check — basic reasoning
+      - name: Policy check, basic reasoning
         run: |
           cogscope check -c examples/contracts/basic_reasoning.yaml \
             "What is 15 * 7? Show your reasoning step by step." \
             --adapter mock --model mock-model
 
-      - name: Policy check — math (expect pass or review, not crash)
+      - name: Policy check, math (expect pass or review, not crash)
         run: |
           cogscope check -c examples/contracts/math_reasoning.yaml \
             "A rectangle has length 8 and width 5. What is the perimeter?" \
