@@ -4,7 +4,13 @@ from datetime import datetime
 
 import pytest
 
-from cogscope.core.models import BehavioralFingerprint, ModelConfig, ReasoningTrace, TokenUsage, ToolCall
+from cogscope.core.models import (
+    BehavioralFingerprint,
+    ModelConfig,
+    ReasoningTrace,
+    TokenUsage,
+    ToolCall,
+)
 from cogscope.fingerprint.extractor import FingerprintExtractor
 from cogscope.fingerprint.metrics import MetricsCalculator
 

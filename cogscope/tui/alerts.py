@@ -1,4 +1,4 @@
-"""Plain-language drift alert formatting."""
+"""Plain-language structural and semantic drift alert formatting."""
 
 from __future__ import annotations
 
@@ -14,24 +14,33 @@ _METRIC_LABELS = {
     "reasoning_length": "reasoning length",
     "hedging_ratio": "hedging",
     "compression_ratio": "compression ratio",
+    "semantic_embedding": "embedding distribution",
 }
 
 
 def describe_shift(shift: dict) -> str:
     metric = _METRIC_LABELS.get(shift["metric"], shift["metric"].replace("_", " "))
     direction = shift["direction"]
-    typical = shift["baseline_mean"]
-    current = shift["current_value"]
-    if direction == "decreased":
-        return (
-            f"{metric} dropped from a typical {typical:.1f} to {current:.1f} "
-            f"— this response skipped behavior it normally shows"
-        )
-    return f"{metric} rose from a typical {typical:.1f} to {current:.1f}"
+    drift_type = shift.get("drift_type", "structural")
+    prefix = "Semantic drift" if drift_type == "semantic" else "Structural drift"
+    if "baseline_mean" in shift:
+        typical = shift["baseline_mean"]
+        current = shift["current_value"]
+        if direction == "decreased":
+            return (
+                f"{prefix}: {metric} dropped from typical {typical:.1f} to {current:.1f}. "
+                "This may reflect provider tuning, not capability loss."
+            )
+        return f"{prefix}: {metric} rose from typical {typical:.1f} to {current:.1f}"
+    return f"{prefix}: {metric} ({direction})"
 
 
 def format_alert_panel(event: CaptureEvent) -> str:
-    lines = ["[bold red]Drift detected[/] — corroborated metric shifts:"]
+    lines = [
+        "[bold yellow]Drift detected[/] (something changed, go look):",
+        "[dim]Structural shifts often reflect provider system-prompt or style tuning, "
+        "not proof the model got worse.[/]",
+    ]
     for shift in event.metric_shifts:
         lines.append(f"  • {describe_shift(shift)}")
     if event.baseline_name:

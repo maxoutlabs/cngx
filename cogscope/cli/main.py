@@ -18,7 +18,7 @@ console = Console()
 
 app = typer.Typer(
     name="cogscope",
-    help="Cogscope — observe LLM reasoning, detect drift, check policies",
+    help="Cogscope, observe LLM reasoning, detect drift, check policies",
     add_completion=False,
     pretty_exceptions_enable=True,
     pretty_exceptions_short=True,
@@ -54,7 +54,12 @@ def init(
     default_model = "mock-model"
     interactive = not yes and sys.stdin.isatty()
     if interactive:
-        console.print(Panel("[bold]Cogscope setup[/]\nQuick questions — or pass [cyan]--yes[/] to skip.", border_style="cyan"))
+        console.print(
+            Panel(
+                "[bold]Cogscope setup[/]\nQuick questions, or pass [cyan]--yes[/] to skip.",
+                border_style="cyan",
+            )
+        )
         adapter_choice = typer.prompt(
             "Default provider for local capture (mock/openai/gemini/claude)",
             default="mock",
@@ -91,9 +96,9 @@ def init(
         Panel(
             f"[green]OK[/] Ready at {cogscope_path.resolve()}\n\n"
             "[bold]Try next:[/]\n"
-            "  [cyan]cogscope quickstart[/]  — 30-second demo, no API keys\n"
-            "  [cyan]cogscope watch[/]       — local proxy + live dashboard\n"
-            "  [cyan]cogscope pin --label baseline[/] — pin recent behavior",
+            "  [cyan]cogscope quickstart[/]  30-second demo, no API keys\n"
+            "  [cyan]cogscope watch[/]       local proxy + live dashboard\n"
+            "  [cyan]cogscope pin --label baseline[/]  pin recent behavior",
             title="[bold]Cogscope[/]",
         )
     )
@@ -131,7 +136,9 @@ def pin(
     if trace_id is None:
         traces = db.get_recent_traces(limit=1)
         if not traces:
-            console.print("[red]No traces yet. Run [cyan]cogscope watch[/] or [cyan]cogscope capture[/] first.[/]")
+            console.print(
+                "[red]No traces yet. Run [cyan]cogscope watch[/] or [cyan]cogscope capture[/] first.[/]"
+            )
             raise typer.Exit(1)
         trace_id = traces[0].id
 
@@ -183,7 +190,7 @@ def diff_cmd(
             formatter.format_rich(d)
 
 
-# Register as `diff` without clashing with diff typer group — use callback
+# Register as `diff` without clashing with diff typer group, use callback
 app.command("diff")(diff_cmd)
 
 
@@ -200,6 +207,27 @@ def check(
     from cogscope.cli.check_cmd import run_check
 
     raise typer.Exit(run_check(prompt, policy, model, adapter, task_id, json_output))
+
+
+@app.command()
+def regression(
+    suite: Path = typer.Option(..., "--suite", "-s", help="YAML benchmark suite"),
+    policy: Path = typer.Option(..., "--policy", "-c", help="Policy YAML"),
+    baseline_outcomes: Optional[Path] = typer.Option(
+        None,
+        "--baseline-outcomes",
+        help="JSON file with baseline correct[] vector for McNemar test",
+    ),
+    model: str = typer.Option("mock-model", "--model", "-m"),
+    adapter: str = typer.Option("mock", "--adapter", "-a"),
+    json_output: bool = typer.Option(False, "--json", "-j"),
+) -> None:
+    """Run fixed benchmark suite with McNemar or paired permutation tests (CI)."""
+    from cogscope.cli.regression_cmd import run_regression_suite
+
+    raise typer.Exit(
+        run_regression_suite(suite, policy, model, adapter, baseline_outcomes, json_output)
+    )
 
 
 @app.command()

@@ -10,12 +10,24 @@ cogscope quickstart
 
 ## What you'll see
 
+Terminal demo (recorded with [VHS](https://github.com/charmbracelet/vhs), mock adapter, no API keys):
+
+![Cogscope quickstart demo](../assets/quickstart.gif)
+
 The command runs a mock scenario in under 30 seconds:
 
-1. **Without Cogscope** — A pipeline completes and downstream systems would run, but reasoning assumptions were violated (verification skipped, confidence too low).
-2. **With Cogscope** — The same shallow behavior is **blocked** against a policy: reasoning depth too low, no verification steps detected.
+1. **Without Cogscope**: a pipeline completes and downstream systems would run, but reasoning assumptions were violated (verification skipped, confidence too low).
+2. **With Cogscope**: the same shallow behavior is **blocked** against a policy (reasoning depth too low, no verification steps detected).
 
-The demo uses the mock adapter and a deterministic fingerprint so the BLOCKED result is reliable every run — not random LLM variance.
+The demo uses the mock adapter and a deterministic fingerprint so the BLOCKED result is reliable every run, not random LLM variance.
+
+Regenerate the GIF after UI changes:
+
+```bash
+vhs scripts/demo/quickstart.tape
+```
+
+See `scripts/demo/README.md` for Windows ttyd notes and full instructions.
 
 ## Try a policy check yourself
 

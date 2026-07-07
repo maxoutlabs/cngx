@@ -18,7 +18,7 @@ class FingerprintExtractor:
     - How verbose is it?
     - Does it verify its work?
 
-    This is the core innovation of Cogscope — transforming raw traces
+    This is the core innovation of Cogscope, transforming raw traces
     into comparable, versionable behavioral signatures.
     """
 

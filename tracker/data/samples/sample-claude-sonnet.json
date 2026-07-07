@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "sample": true,
-  "_comment": "Demonstration data only — not from live API calls. For pipeline testing.",
+  "_comment": "Demonstration data only, not from live API calls. For pipeline testing.",
   "record_id": "sample-claude-sonnet-001",
   "timestamp": "2026-01-12T14:30:00Z",
   "model": "claude-sonnet-4-20250514",

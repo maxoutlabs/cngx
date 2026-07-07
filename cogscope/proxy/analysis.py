@@ -12,12 +12,22 @@ from typing import Any, Optional
 
 from cogscope.core.models import ModelConfig, ReasoningTrace, TokenUsage
 from cogscope.drift.detector import DriftDetector
+from cogscope.drift.semantic import get_semantic_analyzer
 from cogscope.fingerprint.extractor import FingerprintExtractor
+from cogscope.observability.otel import emit_capture_span, is_otel_enabled
 from cogscope.proxy.events import CaptureEvent, get_event_bus
 from cogscope.storage.database import get_database
 from cogscope.versioning.baseline import BaselineManager
 
 logger = logging.getLogger("cogscope.proxy.analysis")
+
+_semantic_enabled: bool = False
+
+
+def set_semantic_analysis_enabled(enabled: bool) -> None:
+    """Enable optional local embedding drift (requires cogscope[semantic])."""
+    global _semantic_enabled
+    _semantic_enabled = enabled
 
 
 def _extract_prompt(messages: list[dict]) -> str:
@@ -59,7 +69,9 @@ def _build_trace_from_openai(
         task_id=task_id,
         model=model,
         adapter_type="openai",
-        system_message=next((m.get("content") for m in messages if m.get("role") == "system"), None),
+        system_message=next(
+            (m.get("content") for m in messages if m.get("role") == "system"), None
+        ),
         prompt=prompt,
         messages=messages,
         output=output,
@@ -160,20 +172,46 @@ async def analyze_completed_call(
                     verification_steps=fp.verification_steps,
                     hedging_ratio=fp.hedging_ratio,
                     no_baseline=True,
-                    alert_message="No baseline pinned — captured and fingerprinted only.",
+                    alert_message="No baseline pinned, captured and fingerprinted only.",
                 )
             )
             return
 
         historical = db.get_fingerprints_by_task(task_id, limit=30)
         detector = DriftDetector(db=db)
+        semantic_analyzer = get_semantic_analyzer(_semantic_enabled)
+        if semantic_analyzer is not None and historical:
+            trace_outputs = {}
+            for hfp in historical:
+                try:
+                    ht = db.get_trace(hfp.trace_id)
+                    if ht:
+                        trace_outputs[hfp.trace_id] = ht.output or ""
+                except Exception:
+                    pass
+            if not semantic_analyzer._baseline_embeddings:
+                semantic_analyzer.seed_from_fingerprints(historical, trace_outputs)
+
         assessment = detector.assess_against_pinned_baseline(
             fp,
             baseline_fp,
             historical,
             baseline_name=baseline.name if baseline else None,
             model_name=trace.model,
+            semantic_text=trace.output if _semantic_enabled else None,
+            semantic_analyzer=semantic_analyzer,
         )
+
+        if is_otel_enabled():
+            emit_capture_span(
+                trace=trace,
+                fingerprint=fp,
+                provider=provider,
+                drift_score=assessment.drift_score,
+                structural_drift=assessment.structural_alert,
+                semantic_drift=assessment.semantic_alert,
+                baseline_name=baseline.name if baseline else None,
+            )
 
         alert_msg = None
         if assessment.should_alert:

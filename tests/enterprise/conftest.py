@@ -1,8 +1,8 @@
 """
-Enterprise Test Suite — Shared Configuration & Fixtures
+Enterprise Test Suite, Shared Configuration & Fixtures
 
 Mock-based fixtures for integration tests. Live LLM API tests were removed
-in the oss-launch hardening pass — unit tests cover adapter behavior with mock.
+in the oss-launch hardening pass, unit tests cover adapter behavior with mock.
 """
 
 import asyncio
@@ -59,7 +59,7 @@ def diff_engine():
 
 @pytest.fixture()
 def mock_tracer():
-    """Tracer using mock adapter — no API keys required."""
+    """Tracer using mock adapter, no API keys required."""
     return CogscopeTracer(adapter="mock", model="mock-model", auto_fingerprint=True)
 
 

@@ -4,7 +4,7 @@ name: Cogscope Policy Check
 
 on:
   push:
-    branches: [main, oss-launch]
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -45,13 +45,13 @@ jobs:
       - name: Init Cogscope
         run: cogscope init --yes
 
-      - name: Policy check — basic reasoning
+      - name: Policy check, basic reasoning
         run: |
           cogscope check -c examples/contracts/basic_reasoning.yaml \
             "What is 15 * 7? Show your reasoning step by step." \
             --adapter mock --model mock-model
 
-      - name: Policy check — math (expect pass or review, not crash)
+      - name: Policy check, math (expect pass or review, not crash)
         run: |
           cogscope check -c examples/contracts/math_reasoning.yaml \
             "A rectangle has length 8 and width 5. What is the perimeter?" \
@@ -60,6 +60,27 @@ jobs:
 
       - name: Quickstart smoke
         run: cogscope quickstart
+
+  action-smoke:
+    name: Reusable Action Smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run root action (editable)
+        uses: ./
+        with:
+          install-mode: editable
+          policy: examples/contracts/basic_reasoning.yaml
+          prompt: "What is 15 * 7? Show your reasoning step by step."
+
+      - name: Run root action (prompt-file)
+        uses: ./
+        with:
+          install-mode: editable
+          policy: examples/contracts/basic_reasoning.yaml
+          prompt-file: tests/fixtures/action_prompt.txt
+          task-id: action_prompt_file
 
       - name: Summary
         if: always()

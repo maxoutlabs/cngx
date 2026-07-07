@@ -21,7 +21,7 @@ logger = logging.getLogger("cogscope.proxy")
 
 
 def _upstream_for_path(path: str) -> tuple[str, str, dict[str, str]] | None:
-    """Return (provider, url, auth_headers) — keys read from env, never logged."""
+    """Return (provider, url, auth_headers), keys read from env, never logged."""
     if path.endswith("/v1/chat/completions") or path == "/v1/chat/completions":
         key = os.getenv("OPENAI_API_KEY") or os.getenv("COGSCOPE_OPENAI_API_KEY")
         if not key:

@@ -46,6 +46,11 @@ def _fp(**overrides) -> BehavioralFingerprint:
 class TestStatisticalDriftAlerting:
     """Prove shorter-but-normal responses do not false-alarm."""
 
+    def setup_method(self):
+        from cogscope.drift.streaming import get_streaming_registry
+
+        get_streaming_registry().reset()
+
     def test_shorter_concise_response_does_not_alert(self):
         """Shorter output inside baseline distribution must NOT trigger drift."""
         baseline = _fp(trace_id="baseline")
@@ -70,26 +75,29 @@ class TestStatisticalDriftAlerting:
             current, baseline, history, baseline_name="math_v1"
         )
 
-        assert result.should_alert is False, (
-            f"False positive: {result.summary} outliers={result.outliers}"
-        )
+        assert (
+            result.should_alert is False
+        ), f"False positive: {result.summary} outliers={result.outliers}"
 
     def test_quality_regression_does_alert(self):
-        """Dropping verification AND depth together should alert."""
+        """Dropping verification AND depth together should alert after streaming accumulates."""
         baseline = _fp(trace_id="baseline")
         history = [
             _fp(trace_id=f"h{i}", depth=5, verification_steps=3, output_length=2000)
             for i in range(12)
         ]
-        current = _fp(trace_id="bad", depth=1, verification_steps=0, output_length=2000)
-
         detector = DriftDetector()
-        result = detector.assess_against_pinned_baseline(
-            current, baseline, history, baseline_name="math_v1"
-        )
+        result = None
+        for i in range(70):
+            current = _fp(trace_id=f"bad{i}", depth=1, verification_steps=0, output_length=2000)
+            result = detector.assess_against_pinned_baseline(
+                current, baseline, history, baseline_name="math_v1"
+            )
+            if result.should_alert:
+                break
 
-        assert result.should_alert is True
-        quality_outliers = [o for o in result.outliers if o["is_quality"]]
+        assert result is not None and result.should_alert is True
+        quality_outliers = [o for o in result.outliers if o.get("is_quality")]
         assert len(quality_outliers) >= 1
 
     def test_adaptive_thresholds_length_only_not_outlier_enough(self):

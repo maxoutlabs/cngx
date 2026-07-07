@@ -1,4 +1,4 @@
-"""cogscope submit — opt-in anonymous drift data for the public tracker."""
+"""cogscope submit, opt-in anonymous drift data for the public tracker."""
 
 from __future__ import annotations
 
@@ -92,9 +92,11 @@ def build_submit_payload(
     return {
         "schema_version": SCHEMA_VERSION,
         "record_id": record_id or str(uuid.uuid4()),
-        "timestamp": fp.timestamp.isoformat() + "Z"
-        if fp.timestamp.tzinfo is None
-        else fp.timestamp.isoformat(),
+        "timestamp": (
+            fp.timestamp.isoformat() + "Z"
+            if fp.timestamp.tzinfo is None
+            else fp.timestamp.isoformat()
+        ),
         "model": fp.model,
         "baseline_label": baseline_label,
         "drift_score": round(float(drift_score), 4),
@@ -184,6 +186,28 @@ def _write_pending(tracker_root: Path, payload: dict[str, Any]) -> Path:
     return out
 
 
+def _github_repo_slug(repo_root: Path) -> Optional[str]:
+    """Resolve owner/repo from origin remote (for gh pr create --repo)."""
+    try:
+        result = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            cwd=repo_root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+    url = result.stdout.strip().rstrip("/")
+    if url.endswith(".git"):
+        url = url[:-4]
+    if "github.com:" in url:
+        return url.split("github.com:", 1)[1]
+    if "github.com/" in url:
+        return url.split("github.com/", 1)[1]
+    return None
+
+
 def _try_gh_pr(tracker_root: Path, payload: dict[str, Any], repo_root: Path) -> bool:
     """Create community JSON and open PR via gh CLI. Returns True on success."""
     if not shutil.which("gh"):
@@ -227,8 +251,12 @@ def _try_gh_pr(tracker_root: Path, payload: dict[str, Any], repo_root: Path) -> 
             check=True,
             capture_output=True,
         )
+        pr_cmd = ["gh", "pr", "create", "--title", title, "--body", body]
+        repo_slug = _github_repo_slug(repo_root)
+        if repo_slug:
+            pr_cmd.extend(["--repo", repo_slug])
         subprocess.run(
-            ["gh", "pr", "create", "--title", title, "--body", body],
+            pr_cmd,
             cwd=repo_root,
             check=True,
             capture_output=True,
@@ -273,7 +301,7 @@ def run_submit(
     text = json.dumps(preview, indent=2)
     console.print(
         Panel(
-            "[bold]Preview — exact payload(s) to submit[/]\n\n"
+            "[bold]Preview, exact payload(s) to submit[/]\n\n"
             "Contains ONLY model name, timestamp, numeric metrics, drift score, "
             "and your baseline label. [bold]No prompts or outputs.[/]",
             border_style="cyan",
@@ -282,7 +310,7 @@ def run_submit(
     console.print(Syntax(text, "json", theme="monokai", line_numbers=False))
 
     if dry_run:
-        console.print("[dim]Dry run — nothing sent.[/]")
+        console.print("[dim]Dry run, nothing sent.[/]")
         return 0
 
     if not yes:
@@ -307,7 +335,7 @@ def run_submit(
             console.print(
                 Panel(
                     f"[green]OK[/] Wrote [cyan]{path}[/]\n\n"
-                    "No GitHub CLI access — open a PR manually:\n"
+                    "No GitHub CLI access, open a PR manually:\n"
                     f"  1. Copy to [cyan]tracker/data/community/{payload['record_id']}.json[/]\n"
                     "  2. git checkout -b submit/your-name\n"
                     "  3. git add tracker/data/community/\n"

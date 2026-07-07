@@ -85,19 +85,25 @@ class DriftScorer:
             current_vals = [getattr(fp, metric) for fp in current_fingerprints]
 
             try:
-                # Mann-Whitney U test
                 stat, p_value = stats.mannwhitneyu(
                     baseline_vals, current_vals, alternative="two-sided"
                 )
-
-                # Convert p-value to drift score (lower p = higher drift)
-                drift_score = 1 - p_value
-
-                drift_scores[metric] = float(drift_score)
+                drift_scores[metric] = float(1 - p_value)
             except Exception:
                 drift_scores[metric] = 0.0
 
         return drift_scores
+
+    def population_drift_batch(
+        self,
+        baseline_fingerprints: list[BehavioralFingerprint],
+        current_fingerprints: list[BehavioralFingerprint],
+        alpha: float = 0.05,
+    ):
+        """Mann-Whitney + BH + CCT batch test (preferred for diff/check)."""
+        from cogscope.drift.batch import batch_drift_test
+
+        return batch_drift_test(baseline_fingerprints, current_fingerprints, alpha=alpha)
 
     def trend_detection(
         self,

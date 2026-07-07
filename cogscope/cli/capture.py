@@ -107,7 +107,7 @@ def batch_capture(
             item_task = item.get("task_id", f"{task_id}_{i}")
             system = item.get("system")
 
-            status.update(f"[bold]Capturing {i+1}/{len(data)}...")
+            status.update(f"[bold]Capturing {i + 1}/{len(data)}...")
 
             try:
                 trace = tracer.capture(
@@ -144,7 +144,7 @@ def mock_capture(
 
     for i in range(count):
         trace = tracer.capture(
-            prompt=f"{prompt} (variant {i+1})" if count > 1 else prompt,
+            prompt=f"{prompt} (variant {i + 1})" if count > 1 else prompt,
             task_id=task_id,
         )
         fp = tracer.get_fingerprint(trace.id)

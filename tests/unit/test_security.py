@@ -30,7 +30,7 @@ class TestPatternComplexity:
         validate_pattern_complexity(r"step\s*\d+")
 
     def test_nested_quantifiers_rejected(self):
-        """(a+)+ patterns should be rejected — classic ReDoS."""
+        """(a+)+ patterns should be rejected, classic ReDoS."""
         with pytest.raises(RegexComplexityError, match="nested quantifiers"):
             validate_pattern_complexity(r"(a+)+")
 
@@ -90,7 +90,7 @@ class TestSafeSearch:
     def test_input_capped_at_max_length(self):
         """Long inputs should be truncated, not rejected."""
         pat = safe_regex_compile(r"end_marker")
-        # Place marker beyond the cap — it should NOT be found
+        # Place marker beyond the cap, it should NOT be found
         text = "a" * (MAX_INPUT_LENGTH + 100) + "end_marker"
         match = safe_regex_search(pat, text)
         assert match is None

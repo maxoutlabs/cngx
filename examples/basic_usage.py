@@ -11,7 +11,7 @@ from cogscope import (
 def main():
     """Demonstrate basic Cogscope workflow."""
     print("=" * 60)
-    print("Cogscope — Behavioral Contract Enforcement Demo")
+    print("Cogscope, Behavioral Contract Enforcement Demo")
     print("=" * 60)
 
     # 1. Create tracer with mock adapter (no actual LLM calls)

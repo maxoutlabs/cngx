@@ -1,4 +1,4 @@
-"""Local LLM proxy — capture and fingerprint without blocking callers."""
+"""Local LLM proxy, capture and fingerprint without blocking callers."""
 
 from cogscope.proxy.config import ProxyConfig, get_proxy_config
 from cogscope.proxy.events import CaptureEvent, EventBus, get_event_bus

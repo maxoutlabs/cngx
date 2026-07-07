@@ -1,4 +1,4 @@
-"""Observability module — structured logging, Prometheus metrics, and tracing.
+"""Observability module, structured logging, Prometheus metrics, and tracing.
 
 Production-grade observability for Cogscope:
 - JSON structured logging with correlation IDs

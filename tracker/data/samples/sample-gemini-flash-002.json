@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "sample": true,
+  "_comment": "Demonstration data only, timeline point 2.",
+  "record_id": "sample-gemini-flash-002",
+  "timestamp": "2026-02-12T09:15:00Z",
+  "model": "gemini-2.5-flash",
+  "baseline_label": "demo-math-baseline",
+  "drift_score": 0.35,
+  "depth": 4,
+  "verification_steps": 1,
+  "hedging_ratio": 0.12,
+  "branching_factor": 0.15,
+  "total_steps": 4,
+  "correction_count": 0,
+  "uncertainty_markers": 2,
+  "output_length": 350,
+  "reasoning_length": 400
+}

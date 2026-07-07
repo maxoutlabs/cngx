@@ -1,4 +1,4 @@
-"""cogscope check — policy validation for CI."""
+"""cogscope check, policy validation for CI."""
 
 from __future__ import annotations
 
@@ -66,7 +66,7 @@ def run_check(
 
 
 def _format_policy_report(result) -> str:
-    """User-facing report — always says policy, never gate/contract/compliance."""
+    """User-facing report, always says policy, never gate/contract/compliance."""
     lines = [
         "=" * 60,
         "Cogscope policy check",
@@ -127,9 +127,7 @@ def check(
 
     Exit codes: 0 pass, 1 blocked, 2 failed (soft violations).
     """
-    raise typer.Exit(
-        run_check(prompt, policy, model, adapter, task_id, json_output)
-    )
+    raise typer.Exit(run_check(prompt, policy, model, adapter, task_id, json_output))
 
 
 if __name__ == "__main__":

@@ -119,4 +119,4 @@ GitHub Actions example: `.github/workflows/cogscope-check.yml` in the repository
 ## Related
 
 - [CLI `check` command](../cli/reference.md#check)
-- [Fingerprinting](fingerprinting.md) — what metrics policies evaluate
+- [Fingerprinting](fingerprinting.md), what metrics policies evaluate

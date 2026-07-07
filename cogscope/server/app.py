@@ -56,24 +56,24 @@ _rate_limiter = _RateLimiter(max_requests=RATE_LIMIT_RPM, window_seconds=60)
 
 
 # ---------------------------------------------------------------------------
-# Lifespan — graceful startup / shutdown
+# Lifespan, graceful startup / shutdown
 # ---------------------------------------------------------------------------
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Manage server lifecycle — initialise DB on startup, close on shutdown."""
+    """Manage server lifecycle, initialise DB on startup, close on shutdown."""
     logger.info("Cogscope server starting (v%s)", __version__)
     db = get_database()
     logger.info("Database ready (%s traces)", db.get_stats().get("traces", 0))
     yield
-    logger.info("Cogscope server shutting down — closing database")
+    logger.info("Cogscope server shutting down, closing database")
     db.close()
     logger.info("Shutdown complete")
 
 
 app = FastAPI(
-    title="Cogscope — Behavioral Contract Enforcement",
+    title="Cogscope, Behavioral Contract Enforcement",
     description="Git for model behavior, not prompts",
     version=__version__,
     lifespan=lifespan,
@@ -83,9 +83,9 @@ app = FastAPI(
 # Middleware
 # ---------------------------------------------------------------------------
 
-_cors_origins = os.getenv("COGSCOPE_CORS_ORIGINS", "http://localhost:3000,http://localhost:8642").split(
-    ","
-)
+_cors_origins = os.getenv(
+    "COGSCOPE_CORS_ORIGINS", "http://localhost:3000,http://localhost:8642"
+).split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in _cors_origins],
@@ -183,7 +183,7 @@ async def root():
 
 @app.get("/health")
 async def health():
-    """Health check — verifies database connectivity."""
+    """Health check, verifies database connectivity."""
     try:
         db = get_database()
         stats = db.get_stats()
@@ -253,7 +253,7 @@ async def get_trace(trace_id: str):
             "fingerprint": fp.model_dump(mode="json") if fp else None,
         }
     except Exception as e:
-        logger.warning("Trace not found: %s — %s", trace_id, e)
+        logger.warning("Trace not found: %s, %s", trace_id, e)
         raise HTTPException(status_code=404, detail="Trace not found")
 
 
@@ -401,7 +401,7 @@ async def ui():
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Cogscope — Behavioral Contract Enforcement</title>
+    <title>Cogscope, Behavioral Contract Enforcement</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -446,7 +446,7 @@ async def ui():
 </head>
 <body>
     <div class="container">
-        <h1>Cogscope — Behavioral Contract Enforcement</h1>
+        <h1>Cogscope, Behavioral Contract Enforcement</h1>
 
         <div class="card">
             <h2>Statistics</h2>

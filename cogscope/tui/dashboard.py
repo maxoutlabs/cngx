@@ -49,7 +49,7 @@ class LiveDashboard:
 
         for ev in reversed(self.events[-12:]):
             ts = ev.timestamp.strftime("%H:%M:%S")
-            drift = "—" if ev.drift_score is None else f"{ev.drift_score:.0%}"
+            drift = "n/a" if ev.drift_score is None else f"{ev.drift_score:.0%}"
             if ev.no_baseline:
                 status = Text("no baseline", style="dim")
             elif ev.alert:

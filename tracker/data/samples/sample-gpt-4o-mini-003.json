@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "sample": true,
+  "_comment": "Demonstration data only, timeline point 3.",
+  "record_id": "sample-gpt4o-mini-003",
+  "timestamp": "2026-03-10T10:00:00Z",
+  "model": "gpt-4o-mini",
+  "baseline_label": "demo-math-baseline",
+  "drift_score": 0.22,
+  "depth": 3,
+  "verification_steps": 1,
+  "hedging_ratio": 0.28,
+  "branching_factor": 0.18,
+  "total_steps": 4,
+  "correction_count": 0,
+  "uncertainty_markers": 4,
+  "output_length": 390,
+  "reasoning_length": 720
+}

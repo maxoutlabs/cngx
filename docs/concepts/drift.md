@@ -4,6 +4,17 @@ Drift detection answers: **"Is this response unusually different from behavior I
 
 It does **not** answer: "Is this model worse than last month industry-wide?" or "Is GPT better than Claude?"
 
+Cogscope distinguishes two kinds of drift:
+
+| Type | What it measures | What it means |
+|------|------------------|---------------|
+| **Structural drift** | Heuristic fingerprint metrics (depth, verification, hedging, etc.) | The reasoning *shape* changed relative to your baseline. Often reflects provider system-prompt tuning or stylistic changes, **not** proof of capability loss. |
+| **Semantic drift** | Optional local embedding distance (`--semantic`) | The *content* distribution shifted even when pattern counts look similar. |
+
+**Treat any structural drift alert as "something changed, go look," not "the model got worse."**
+
+Cogscope uses **different statistical methods for different situations**. They are not blended into one mechanism.
+
 ## Pin a baseline first
 
 ```bash
@@ -19,42 +30,58 @@ A baseline stores a reference fingerprint for a task/model pair in `.cogscope/co
 cogscope diff --baseline my-baseline
 ```
 
-Or watch the live TUI during `cogscope watch` — drift scores appear when a baseline is pinned.
+Or watch the live TUI during `cogscope watch`, drift scores appear when a baseline is pinned.
 
-## When alerts fire (design principle)
+## Live proxy path (streaming, no ground truth)
 
-Implemented in `cogscope/drift/detector.py` and `cogscope/calibration/profiles.py`:
+**Algorithms:** [KSWIN](https://doi.org/10.1109/ICDM.2018.00060) (Raab et al., 2020) on count/continuous metrics via [frouros](https://github.com/IFCA/frouros); [MDDM](https://doi.org/10.1109/ICDM.2018.00059) (Pesaranghader et al., 2018) in-house on ratio-like metrics (hedging ratio).
 
-1. **Relative to your baseline history** — not hardcoded universal thresholds.
-2. **Multi-metric corroboration** — at least two metrics must be statistical outliers, including at least one *quality* metric (`verification_steps`, `depth`, `correction_count`, etc.).
-3. **Length alone never alerts** — a shorter, more efficient response inside the baseline's normal distribution does **not** trigger drift.
+- One streaming detector per **(model, pinned baseline, metric)** for core fingerprint metrics.
+- Each new proxied call updates its metric streams in **background analysis**, the streamed response is not blocked.
+- A per-metric flag comes from KSWIN (empirical CDF comparison in a sliding window) or MDDM (weighted-window McDiarmid bound), not mean-only cumulative sums.
+- **Structural drift alerts** still require corroboration: at least two metric streams must flag, including at least one non-length metric. Length-only shifts never alert alone.
 
-Quality metrics vs length metrics are defined explicitly in `QUALITY_METRICS` and `LENGTH_METRICS` in `profiles.py`.
+Implementation: `cogscope/drift/streaming.py`, wired from `cogscope/proxy/analysis.py`.
 
-### What this means in practice
+## One-shot diff / check path (batch comparison)
 
-| Scenario | Alerts? |
-|----------|---------|
-| Model gives shorter answer, verification depth unchanged | No |
-| Model skips verification *and* depth drops *and* hedging shifts — all outliers vs baseline | Yes |
-| Single metric wiggles slightly | No |
+**Procedure** (`cogscope/drift/batch.py`):
 
-## Drift score
+1. Per-metric **Mann-Whitney U** test (non-parametric two-sample comparison).
+2. **Benjamini-Hochberg** false discovery rate correction across simultaneous tests (Benjamini & Hochberg, 1995).
+3. **Cauchy Combination Test** (Liu & Xie, 2020) combining BH-rejected raw p-values into one omnibus statistic. CCT remains valid under arbitrary unknown dependency between correlated heuristic metrics (unlike Fisher's method).
+4. Per-metric p-values and Cohen's d effect sizes are reported alongside the global CCT p-value for interpretability.
 
-The `drift_score` (0–1) comes from `DiffEngine` comparing two fingerprints. It is a weighted summary of metric deltas — useful for ranking, not as a standalone alarm. The statistical outlier check gates actual alerts.
+Used by `cogscope diff`, `cogscope drift detect`, and population comparisons in `DriftDetector`.
 
-## Reports
+## CI regression path (paired benchmarks with oracle)
+
+**Binary outcomes:** McNemar's exact test (McNemar, 1947) via the [holdout](https://github.com/jordan-baillie/holdout) library.
+
+**Continuous / graded scores:** Paired permutation (sign-flip) test via `holdout.paired_permutation_test`, following the generalization recommended in [Amazon Science LLM-Accuracy-Stats](https://github.com/amazon-science/LLM-Accuracy-Stats).
 
 ```bash
-cogscope report              # terminal summary, last 24 hours
-cogscope report -o report.html   # HTML export
+cogscope regression --suite benchmarks/math.yaml --policy policies/strict.yaml \
+  --baseline-outcomes baseline_scores.json
 ```
 
-## Public tracker
+Only applies when the same fixed benchmark items are run under baseline and current conditions with a correctness oracle.
 
-Opt-in anonymous submissions feed the [Public Drift Log](../guides/public-drift-log.md). Your local prompts never leave your machine unless you run `cogscope submit` and confirm.
+## Optional semantic drift (`cogscope watch --semantic`)
 
-## Related
+Requires `pip install cogscope[semantic]`. Compares local sentence embeddings (all-MiniLM-L6-v2) between baseline text and current output using Jensen-Shannon distance. This is **semantic drift**, separate from structural fingerprint drift.
 
-- [Fingerprinting](fingerprinting.md)
-- [FAQ](../faq.md) — gaming and pseudo-science objections
+## Optional OpenTelemetry export (`cogscope watch --otel`)
+
+Requires `pip install cogscope[otel]`. Emits GenAI semantic convention spans with `cogscope.fingerprint.*` attributes to an OTLP HTTP endpoint (default `http://localhost:4318`). Off by default; DuckDB remains the primary store.
+
+## When alerts fire (summary)
+
+| Situation | Method | Alerts? |
+|-----------|--------|---------|
+| Shorter answer, quality metrics stable | KSWIN/MDDM streaming | No |
+| Concise but within baseline distribution | Streaming + guards | No |
+| Population window shift (diff) | Mann-Whitney + BH + CCT | Yes if omnibus significant |
+| Fixed benchmark regression (binary) | McNemar exact | Yes if paired shift |
+| Fixed benchmark regression (continuous) | Paired permutation | Yes if paired shift |
+| Topical shift, heuristics stable | Semantic embedding (`--semantic`) | Semantic drift only |
