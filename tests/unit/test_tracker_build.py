@@ -51,4 +51,9 @@ def test_build_writes_docs_and_split_data_js(tmp_path, monkeypatch):
     assert "TRACKER_DATA" in payload
 
     community = load_community_records()
-    assert "window.TRACKER_DATA = {}" in payload or aggregate_by_model(community) == {}
+    community_by_model = aggregate_by_model(community)
+    assert f'"community_record_count": {len(community)}' in payload
+    if community_by_model:
+        assert '"gpt-4o-mini"' in payload or any(m in payload for m in community_by_model)
+    else:
+        assert "window.TRACKER_DATA = {}" in payload
