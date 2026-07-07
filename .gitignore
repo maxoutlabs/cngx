@@ -28,6 +28,9 @@ htmlcov/
 site/
 tracker/site/index.html
 tracker/site/data.js
+tracker/site/style.css
+tracker/site/app.js
+tracker/screenshots/
 
 # IDE and OS
 .vscode/
