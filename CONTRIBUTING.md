@@ -135,6 +135,16 @@ Local smoke test for the action logic:
 python scripts/test_github_action_local.py
 ```
 
+## Terminal demo assets
+
+The README demo GIF is generated with VHS, not screen capture:
+
+```bash
+vhs scripts/demo/quickstart.tape
+```
+
+Full instructions (including Windows MSVC ttyd workaround): `scripts/demo/README.md`.
+
 ## Code of conduct
 
 This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md). Be respectful and constructive.

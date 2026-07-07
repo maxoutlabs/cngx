@@ -23,7 +23,7 @@ cogscope quickstart
 
 `quickstart` runs in under a minute with **no API keys** and shows shallow reasoning blocked by a policy.
 
-![Cogscope quickstart demo](assets/quickstart.svg)
+![Cogscope quickstart demo](assets/quickstart.gif)
 
 ## How it differs from other tooling
 

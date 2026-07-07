@@ -28,6 +28,9 @@ htmlcov/
 site/
 tracker/site/index.html
 tracker/site/data.js
+
+# VHS tooling (MSVC ttyd binaries, not committed)
+.vhs-tools/
 tracker/site/style.css
 tracker/site/app.js
 tracker/screenshots/

@@ -31,16 +31,16 @@ These approaches are complementary. Cogscope targets the gap where output still 
 
 ## Demo
 
-Terminal output from `cogscope quickstart` (mock adapter, no API keys):
+Terminal recording of `cogscope quickstart` (mock adapter, no API keys, generated with [VHS](https://github.com/charmbracelet/vhs)):
 
-![Cogscope quickstart: shallow reasoning ships without Cogscope, policy check BLOCKED with Cogscope](docs/assets/quickstart.svg)
+![Cogscope quickstart: shallow reasoning ships without Cogscope, policy check BLOCKED with Cogscope](docs/assets/quickstart.gif)
 
 ```bash
 pip install -e .
 cogscope quickstart
 ```
 
-Regenerate the screenshot after UI changes: `python scripts/record_quickstart_demo.py`
+Regenerate after UI changes: `vhs scripts/demo/quickstart.tape` (see `scripts/demo/README.md`).
 
 ---
 

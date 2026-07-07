@@ -10,9 +10,9 @@ cogscope quickstart
 
 ## What you'll see
 
-Real output from a zero-key run (recorded with Rich `Console(record=True)`):
+Terminal demo (recorded with [VHS](https://github.com/charmbracelet/vhs), mock adapter, no API keys):
 
-![Cogscope quickstart demo](../assets/quickstart.svg)
+![Cogscope quickstart demo](../assets/quickstart.gif)
 
 The command runs a mock scenario in under 30 seconds:
 
@@ -21,11 +21,13 @@ The command runs a mock scenario in under 30 seconds:
 
 The demo uses the mock adapter and a deterministic fingerprint so the BLOCKED result is reliable every run, not random LLM variance.
 
-To regenerate this image after UI changes:
+Regenerate the GIF after UI changes:
 
 ```bash
-python scripts/record_quickstart_demo.py
+vhs scripts/demo/quickstart.tape
 ```
+
+See `scripts/demo/README.md` for Windows ttyd notes and full instructions.
 
 ## Try a policy check yourself
 
