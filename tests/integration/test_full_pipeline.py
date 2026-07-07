@@ -234,22 +234,28 @@ class TestMockAdapterPresets:
             db.close()
 
     def test_verbose_vs_terse(self, tracer):
-        """Test that verbose and terse presets differ."""
-        tracer_obj, db = tracer
-        extractor = FingerprintExtractor()
+        """Test that verbose and terse presets differ deterministically."""
+        import random
 
-        # Verbose preset
+        from cogscope.capture.adapters.mock import MockAdapter
+
+        assert (
+            MockAdapter.PRESETS["verbose"]["verbosity"] > MockAdapter.PRESETS["terse"]["verbosity"]
+        )
+        assert MockAdapter.PRESETS["verbose"]["depth"] > MockAdapter.PRESETS["terse"]["depth"]
+
+        tracer_obj, db = tracer
+        random.seed(12345)
         tracer_obj.switch_adapter("mock", preset="verbose")
         trace1 = tracer_obj.capture(prompt="Explain AI", task_id="preset_test", save=False)
-        fp1 = extractor.extract(trace1)
 
-        # Terse preset
+        random.seed(12345)
         tracer_obj.switch_adapter("mock", preset="terse")
         trace2 = tracer_obj.capture(prompt="Explain AI", task_id="preset_test", save=False)
-        fp2 = extractor.extract(trace2)
 
-        # Verbose should have more depth
-        assert fp1.depth > fp2.depth or fp1.output_length > fp2.output_length
+        assert len(trace1.output) > len(trace2.output)
+        assert trace1.metadata.get("preset") == "verbose"
+        assert trace2.metadata.get("preset") == "terse"
 
     def test_tool_heavy_preset(self, tracer):
         """Test that tool_heavy preset uses more tools."""

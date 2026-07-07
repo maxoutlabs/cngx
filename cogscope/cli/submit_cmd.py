@@ -186,6 +186,28 @@ def _write_pending(tracker_root: Path, payload: dict[str, Any]) -> Path:
     return out
 
 
+def _github_repo_slug(repo_root: Path) -> Optional[str]:
+    """Resolve owner/repo from origin remote (for gh pr create --repo)."""
+    try:
+        result = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            cwd=repo_root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+    url = result.stdout.strip().rstrip("/")
+    if url.endswith(".git"):
+        url = url[:-4]
+    if "github.com:" in url:
+        return url.split("github.com:", 1)[1]
+    if "github.com/" in url:
+        return url.split("github.com/", 1)[1]
+    return None
+
+
 def _try_gh_pr(tracker_root: Path, payload: dict[str, Any], repo_root: Path) -> bool:
     """Create community JSON and open PR via gh CLI. Returns True on success."""
     if not shutil.which("gh"):
@@ -229,8 +251,12 @@ def _try_gh_pr(tracker_root: Path, payload: dict[str, Any], repo_root: Path) -> 
             check=True,
             capture_output=True,
         )
+        pr_cmd = ["gh", "pr", "create", "--title", title, "--body", body]
+        repo_slug = _github_repo_slug(repo_root)
+        if repo_slug:
+            pr_cmd.extend(["--repo", repo_slug])
         subprocess.run(
-            ["gh", "pr", "create", "--title", title, "--body", body],
+            pr_cmd,
             cwd=repo_root,
             check=True,
             capture_output=True,
