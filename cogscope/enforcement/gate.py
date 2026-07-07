@@ -374,7 +374,7 @@ class EnforcementGate:
             return f"[{mode}] All {total} checks passed."
         else:
             failed_names = [c.check_name for c in checks if not c.passed]
-            return f"[{mode}] {passed}/{total} checks passed. " f"Failed: {', '.join(failed_names)}"
+            return f"[{mode}] {passed}/{total} checks passed. Failed: {', '.join(failed_names)}"
 
     def enforce_and_exit(self, **kwargs) -> None:
         """Run gate and exit with appropriate code. For CLI usage."""

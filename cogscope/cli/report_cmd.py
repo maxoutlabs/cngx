@@ -108,7 +108,7 @@ tr:nth-child(even) {{ background: #151c28; }}
 <h1>Cogscope drift report</h1>
 <p class="meta">Window: {hours}h · Captures: {len(fingerprints)} · Alerts: {alert_count}</p>
 <table><thead><tr><th>Time</th><th>Model</th><th>Task</th><th>Depth</th><th>Verify</th><th>Drift</th></tr></thead>
-<tbody>{''.join(rows_html)}</tbody></table>
+<tbody>{"".join(rows_html)}</tbody></table>
 </body></html>"""
         output.write_text(html, encoding="utf-8")
         console.print(f"[green]Wrote {output}[/]")

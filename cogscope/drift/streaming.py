@@ -133,9 +133,7 @@ class StreamingDriftMonitor:
     ) -> tuple[bool, list[dict]]:
         """Corroboration: >=2 metrics with ADWIN/PH drift, >=1 quality, not length-only."""
         drifted = [
-            m
-            for m in STREAMING_METRICS
-            if drift_flags.get(m) or self._metrics[m].last_drift
+            m for m in STREAMING_METRICS if drift_flags.get(m) or self._metrics[m].last_drift
         ]
         if len(drifted) < self.min_drift_metrics:
             return False, []
@@ -143,9 +141,8 @@ class StreamingDriftMonitor:
         quality_drifted = [m for m in drifted if m in QUALITY_METRICS]
         length_only = all(m in LENGTH_METRICS for m in drifted)
 
-        should_alert = (
-            not length_only
-            and (not self.require_quality_metric or len(quality_drifted) >= 1)
+        should_alert = not length_only and (
+            not self.require_quality_metric or len(quality_drifted) >= 1
         )
 
         details = [

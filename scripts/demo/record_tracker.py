@@ -89,7 +89,9 @@ def _start_static_server(port: int) -> http.server.ThreadingHTTPServer:
             super().__init__(*args, directory=site, **kwargs)
 
     httpd = http.server.ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    thread = threading.Thread(target=httpd.serve_forever, kwargs={"poll_interval": 0.05}, daemon=True)
+    thread = threading.Thread(
+        target=httpd.serve_forever, kwargs={"poll_interval": 0.05}, daemon=True
+    )
     thread.start()
     return httpd
 
@@ -189,57 +191,59 @@ def _run_recording(url: str, raw_webm: Path) -> None:
         print(f"Raw WebM: {raw_webm} ({raw_webm.stat().st_size} bytes)")
 
 
-def _ffmpeg_trim_and_convert(raw_webm: Path, mp4_out: Path, gif_out: Path, trim_start: float = 0.35) -> None:
-  ffmpeg = shutil.which("ffmpeg")
-  if not ffmpeg:
-      raise RuntimeError("ffmpeg not found on PATH")
+def _ffmpeg_trim_and_convert(
+    raw_webm: Path, mp4_out: Path, gif_out: Path, trim_start: float = 0.35
+) -> None:
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        raise RuntimeError("ffmpeg not found on PATH")
 
-  trimmed = raw_webm.with_suffix(".trim.webm")
-  subprocess.run(
-      [ffmpeg, "-y", "-ss", str(trim_start), "-i", str(raw_webm), "-c", "copy", str(trimmed)],
-      check=True,
-      capture_output=True,
-  )
+    trimmed = raw_webm.with_suffix(".trim.webm")
+    subprocess.run(
+        [ffmpeg, "-y", "-ss", str(trim_start), "-i", str(raw_webm), "-c", "copy", str(trimmed)],
+        check=True,
+        capture_output=True,
+    )
 
-  subprocess.run(
-      [
-          ffmpeg,
-          "-y",
-          "-i",
-          str(trimmed),
-          "-c:v",
-          "libx264",
-          "-crf",
-          "20",
-          "-preset",
-          "medium",
-          "-movflags",
-          "+faststart",
-          "-an",
-          str(mp4_out),
-      ],
-      check=True,
-      capture_output=True,
-  )
+    subprocess.run(
+        [
+            ffmpeg,
+            "-y",
+            "-i",
+            str(trimmed),
+            "-c:v",
+            "libx264",
+            "-crf",
+            "20",
+            "-preset",
+            "medium",
+            "-movflags",
+            "+faststart",
+            "-an",
+            str(mp4_out),
+        ],
+        check=True,
+        capture_output=True,
+    )
 
-  subprocess.run(
-      [
-          ffmpeg,
-          "-y",
-          "-i",
-          str(mp4_out),
-          "-t",
-          "10",
-          "-vf",
-          "fps=8,scale=640:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=128[p];[s1][p]paletteuse",
-          "-loop",
-          "0",
-          str(gif_out),
-      ],
-      check=True,
-      capture_output=True,
-  )
-  trimmed.unlink(missing_ok=True)
+    subprocess.run(
+        [
+            ffmpeg,
+            "-y",
+            "-i",
+            str(mp4_out),
+            "-t",
+            "10",
+            "-vf",
+            "fps=8,scale=640:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=128[p];[s1][p]paletteuse",
+            "-loop",
+            "0",
+            str(gif_out),
+        ],
+        check=True,
+        capture_output=True,
+    )
+    trimmed.unlink(missing_ok=True)
 
 
 def _probe(path: Path) -> dict[str, str]:

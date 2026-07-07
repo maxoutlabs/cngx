@@ -131,9 +131,9 @@ class TestLenientContract:
         result = self._validate(SHALLOW_MATH)
         assert not result.blocked, "Lenient contract should not block shallow answer"
         # Lenient only has WARN severity, so exit_code should be 0
-        assert (
-            result.exit_code == 0
-        ), f"Expected exit_code=0 for lenient + shallow, got {result.exit_code}"
+        assert result.exit_code == 0, (
+            f"Expected exit_code=0 for lenient + shallow, got {result.exit_code}"
+        )
 
     def test_good_passes(self):
         """Good answer should definitely pass."""
@@ -173,9 +173,9 @@ class TestImpossibleContract:
     def test_many_violations(self):
         """Impossible contract should produce many violations."""
         result = self._validate(GOOD_MATH_REASONING)
-        assert (
-            len(result.violations) >= 3
-        ), f"Expected at least 3 violations from impossible contract, got {len(result.violations)}"
+        assert len(result.violations) >= 3, (
+            f"Expected at least 3 violations from impossible contract, got {len(result.violations)}"
+        )
 
 
 class TestCodeReviewContract:
@@ -205,8 +205,7 @@ class TestCodeReviewContract:
         result = self._validate(SHALLOW_CODE_REVIEW)
         # Should have forbidden pattern match AND depth violation
         assert result.blocked or not result.passed, (
-            f"Shallow code review should fail. "
-            f"Violations: {[v.message for v in result.violations]}"
+            f"Shallow code review should fail. Violations: {[v.message for v in result.violations]}"
         )
 
     def test_lgtm_triggers_forbidden_pattern(self):

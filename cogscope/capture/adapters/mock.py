@@ -400,7 +400,7 @@ class MockAdapter(BaseAdapter):
         # Apply verbosity
         if self.preset["verbosity"] > 1:
             result += "\n\nLet me elaborate further on the key points..."
-            result += "\n" + "\n".join([f"- Point {i+1}" for i in range(3)])
+            result += "\n" + "\n".join([f"- Point {i + 1}" for i in range(3)])
 
         template = random.choice(output_templates)
         return template.format(result=result)
