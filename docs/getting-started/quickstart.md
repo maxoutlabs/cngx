@@ -10,12 +10,22 @@ cogscope quickstart
 
 ## What you'll see
 
+Real output from a zero-key run (recorded with Rich `Console(record=True)`):
+
+![Cogscope quickstart demo](../assets/quickstart.svg)
+
 The command runs a mock scenario in under 30 seconds:
 
 1. **Without Cogscope** — A pipeline completes and downstream systems would run, but reasoning assumptions were violated (verification skipped, confidence too low).
 2. **With Cogscope** — The same shallow behavior is **blocked** against a policy: reasoning depth too low, no verification steps detected.
 
 The demo uses the mock adapter and a deterministic fingerprint so the BLOCKED result is reliable every run — not random LLM variance.
+
+To regenerate this image after UI changes:
+
+```bash
+python scripts/record_quickstart_demo.py
+```
 
 ## Try a policy check yourself
 

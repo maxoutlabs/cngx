@@ -1,6 +1,8 @@
 # Cogscope
 
-**Cogscope is a local, zero-cost proxy that fingerprints how your LLM reasons — not just what it answers — so you can prove, not guess, the moment a provider update makes it dumber.**
+**Your LLM can still look fine on output-only metrics while the reasoning underneath gets shallower.**
+
+**Cogscope fingerprints how it reasons, compares that to behavior you pinned as normal, and catches silent regression locally — no API keys, no cloud.**
 
 [![CI](https://github.com/aadi-joshi/cogscope/actions/workflows/ci.yml/badge.svg)](https://github.com/aadi-joshi/cogscope/actions)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
@@ -14,19 +16,33 @@ Model providers ship updates constantly. Latency stays flat, error rates stay lo
 
 Standard evals score the output text. They miss the silent regression where the answer is right today and wrong tomorrow because the model stopped checking its work. Cogscope watches **how** the model reasoned — depth, verification, hedging, corrections — and compares that fingerprint to behavior you have already pinned as normal.
 
+### How this compares
+
+| | Output-quality eval tools | Telemetry / observability tools | Cogscope |
+|---|---------------------------|----------------------------------|----------|
+| **What they measure** | Final answers, rubric scores, benchmark pass rates on fixed prompts | Latency, tokens, traces, spans, costs, error rates in production | Reasoning-shape metrics: depth, verification steps, hedging, corrections |
+| **Baseline** | Global benchmarks or hand-written test sets | Fleet aggregates and dashboards | *Your* pinned fingerprint for *your* task and model |
+| **What they miss** | Shallow reasoning when the answer still reads well | Whether reasoning behavior drifted from what you accepted before | Semantic understanding of "true" reasoning; cheat-proof attestation |
+| **Typical use** | Pre-release regression suites | Production monitoring and debugging | Local proxy, CI policy checks, baseline-relative drift alerts |
+
+These approaches are complementary. Cogscope targets the gap where output still passes but verification quietly disappeared.
+
 ---
 
 ## Demo
 
-<!-- TODO(human): Record a demo GIF or asciinema and replace this block.
-     Recording script:
-       1. Terminal: 100×32 cols, dark theme (e.g. Windows Terminal "One Half Dark" or iTerm2 "Solarized Dark")
-       2. Fresh shell, no API keys set
-       3. Run: pip install -e . && cogscope quickstart
-       4. Optional second recording: cogscope watch (show proxy URL + live TUI for 20–30s)
-     Save as docs/assets/quickstart.cast (asciinema) or docs/assets/quickstart.gif and embed below.
--->
-**Demo recording coming soon.** Run `cogscope quickstart` locally — it takes under a minute and needs no API keys.
+Real terminal output from `cogscope quickstart` (mock adapter, no API keys, recorded with Rich):
+
+![Cogscope quickstart: shallow reasoning ships without Cogscope, policy check BLOCKED with Cogscope](docs/assets/quickstart.svg)
+
+Run it yourself in under 30 seconds:
+
+```bash
+pip install -e .
+cogscope quickstart
+```
+
+Regenerate the screenshot after UI changes: `python scripts/record_quickstart_demo.py`
 
 ---
 

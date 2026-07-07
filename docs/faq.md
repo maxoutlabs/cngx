@@ -40,12 +40,11 @@ A model that becomes more concise while keeping verification depth and other qua
 
 ## How is this different from output benchmarks?
 
-| Output benchmarks | Cogscope |
-|-------------------|----------|
-| Score final text | Score reasoning shape |
-| Often one-off eval sets | Continuous capture on your traffic |
-| Compare models globally | Compare against *your* baseline |
-| Pass/fail on answers | Detect behavioral shift |
+| | Output-quality eval tools | Telemetry / observability tools | Cogscope |
+|---|---------------------------|----------------------------------|----------|
+| **Measures** | Final text, rubric scores, pass rates on fixed prompts | Latency, tokens, traces, spans, costs | Reasoning shape: depth, verification, hedging |
+| **Baseline** | Global or hand-written test sets | Fleet dashboards | *Your* pinned fingerprint |
+| **Misses** | Silent shallow reasoning when answers still look fine | Whether reasoning drifted from what you accepted | Universal intelligence scoring |
 
 They are complementary. Cogscope catches the case where answers still look fine but reasoning got shallower.
 

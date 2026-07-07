@@ -1,6 +1,8 @@
 # Cogscope
 
-**Cogscope is a local, zero-cost proxy that fingerprints how your LLM reasons — not just what it answers — so you can detect when behavior drifts from what you have pinned as normal.**
+**Your LLM can still look fine on output-only metrics while the reasoning underneath gets shallower.**
+
+**Cogscope fingerprints how it reasons, compares that to behavior you pinned as normal, and catches silent regression locally — no API keys, no cloud.**
 
 ## What it does
 
@@ -21,9 +23,17 @@ cogscope quickstart
 
 `quickstart` runs in under a minute with **no API keys** and demonstrates catching shallow reasoning that still produces a plausible answer.
 
-## How it differs from output-only evals
+![Cogscope quickstart demo](assets/quickstart.svg)
 
-Standard benchmarks score final text. Cogscope scores the *shape* of reasoning — whether the model verified its work, how many steps it took, how much it hedged — relative to **your** pinned baseline, not a universal leaderboard.
+## How it differs from other tooling
+
+| | Output-quality eval tools | Telemetry / observability tools | Cogscope |
+|---|---------------------------|----------------------------------|----------|
+| **Measures** | Final answers and rubric scores on fixed prompts | Latency, tokens, traces, costs in production | Reasoning-shape metrics on your traffic |
+| **Baseline** | Global benchmarks | Fleet aggregates | *Your* pinned fingerprint |
+| **Misses** | Shallow reasoning when answers still read well | Drift from behavior you previously accepted | Semantic ground truth about reasoning |
+
+See the [FAQ](faq.md) for skeptical questions answered honestly.
 
 ## Documentation map
 
