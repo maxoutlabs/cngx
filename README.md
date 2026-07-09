@@ -81,6 +81,7 @@ Runs on your machine. Traces and fingerprints live in `.cngx/` (DuckDB). Proxy b
 ## Docs
 
 - [Quickstart](docs/getting-started/quickstart.md)
+- [Gate a coding agent in CI](docs/guides/gate-coding-agent.md) (offline, no API keys)
 - [Proxy and privacy](docs/guides/proxy-and-privacy.md)
 - [CLI reference](docs/cli/reference.md)
 - [Contributing](CONTRIBUTING.md)

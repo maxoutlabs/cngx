@@ -275,6 +275,7 @@ def render_docs() -> str:
         <li><a href="#overview">overview</a></li>
         <li><a href="#install">install</a></li>
         <li><a href="#quickstart">quickstart</a></li>
+        <li><a href="#gate-agent">gate agent output</a></li>
         <li><a href="#wrap">wrap</a></li>
         <li><a href="#watch">watch and sessions</a></li>
         <li><a href="#drift">drift detection</a></li>
@@ -301,6 +302,9 @@ def render_docs() -> str:
       <h2 id="quickstart">quickstart</h2>
       <p>Zero API keys. Mock adapter demo in under 30 seconds.</p>
       {blocks["quickstart"]}
+
+      <h2 id="gate-agent">gate agent output</h2>
+      <p>Gate existing agent text in CI with no API keys: <code>cngx check --output-file output.txt -c policy.yaml</code>. Full walkthrough: <a href="{GITHUB_REPO}/blob/main/docs/guides/gate-coding-agent.md">docs/guides/gate-coding-agent.md</a></p>
 
       <h2 id="wrap">wrap</h2>
       <p>Zero-code instrumentation for existing agent CLIs. Starts the local proxy if needed and injects SDK base URL environment variables into the child process.</p>
