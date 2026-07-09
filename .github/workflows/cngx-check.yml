@@ -68,10 +68,16 @@ jobs:
               contract.to_yaml(), encoding="utf-8"
           )
           PY
+          set +e
           cngx check -c examples/contracts/coding_agent_fix.yaml \
             -p "Fix the pagination bug and run tests before merge" \
-            --response-file tests/fixtures/shallow_agent_output.txt; \
-          test $? -eq 1
+            --response-file tests/fixtures/shallow_agent_output.txt
+          code=$?
+          set -e
+          if [ "$code" -ne 1 ]; then
+            echo "Expected exit 1 (blocked), got $code"
+            exit 1
+          fi
 
       - name: Quickstart smoke
         run: cngx quickstart
