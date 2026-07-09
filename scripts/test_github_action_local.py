@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import os
 import subprocess
 import sys
 import tempfile
@@ -109,33 +108,19 @@ def main() -> int:
         return code
 
     shallow_output = ROOT / "tests" / "fixtures" / "shallow_agent_output.txt"
-    if shallow_output.is_file():
-        from cngx.system_demo.scenarios import CodingAgentFixScenario
-
-        policy_path = ROOT / "examples" / "contracts" / "coding_agent_fix.yaml"
-        temp_policy: Path | None = None
-        if not policy_path.is_file():
-            fd, policy_path_str = tempfile.mkstemp(suffix=".yaml", prefix="coding_agent_")
-            os.close(fd)
-            temp_policy = Path(policy_path_str)
-            policy_path = temp_policy
-            contract = CodingAgentFixScenario.get_scenario().contract
-            policy_path.write_text(contract.to_yaml(), encoding="utf-8")
-        try:
-            code = check_offline(
-                "Fix the pagination bug and run tests before merge",
-                shallow_output,
-                policy=policy_path,
+    policy_path = ROOT / "examples" / "contracts" / "coding_agent_fix.yaml"
+    if shallow_output.is_file() and policy_path.is_file():
+        code = check_offline(
+            "Fix the pagination bug and run tests before merge",
+            shallow_output,
+            policy=policy_path,
+        )
+        if code != 1:
+            print(
+                f"FAIL: offline shallow agent should block (exit 1), got {code}",
+                file=sys.stderr,
             )
-            if code != 1:
-                print(
-                    f"FAIL: offline shallow agent should block (exit 1), got {code}",
-                    file=sys.stderr,
-                )
-                return 1
-        finally:
-            if temp_policy is not None:
-                temp_policy.unlink(missing_ok=True)
+            return 1
 
     print("action.yml local smoke: OK")
     return 0

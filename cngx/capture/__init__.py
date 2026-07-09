@@ -2,6 +2,7 @@
 
 from cngx.capture.adapters.base import BaseAdapter
 from cngx.capture.adapters.mock import MockAdapter
+from cngx.capture.trace_builder import build_trace_from_text
 from cngx.capture.tracer import CngxTracer
 
 
@@ -23,4 +24,5 @@ __all__ = [
     "BaseAdapter",
     "OpenAIAdapter",
     "MockAdapter",
+    "build_trace_from_text",
 ]
