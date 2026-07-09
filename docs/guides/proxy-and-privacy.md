@@ -56,7 +56,7 @@ The only exception is **`cngx submit`**, which is opt-in and requires:
 
 Submitted payloads contain **only**: model name, timestamp, numeric metrics, drift score, and your baseline label. No prompts, outputs, trace IDs, or task names. Verified by `tests/unit/test_submit_privacy.py`.
 
-If `gh` CLI is available, submit opens a PR to add one JSON file under `tracker/data/community/`. Otherwise it writes to `tracker/data/community/pending/` with manual PR instructions.
+`cngx submit` POSTs to a public HTTPS endpoint after you confirm. No GitHub account is required. No personal identity is collected or stored anywhere in the pipeline.
 
 ## Docker
 

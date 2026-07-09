@@ -4,7 +4,8 @@ The **cngx Drift Tracker** is a static site showing behavioral fingerprint trend
 
 - **Source:** `tracker/` in the repository
 - **Live site:** [aadi-joshi.github.io/cngx](https://aadi-joshi.github.io/cngx/)
-- **Cost:** $0 (GitHub Actions + Pages on a public repo)
+- **Live data:** aggregated metrics are served from a public S3 index (refreshed every few minutes in the browser)
+- **Cost:** GitHub Pages for the static shell; a small AWS stack handles anonymous submissions
 
 ## Demo
 
@@ -36,7 +37,9 @@ cngx submit --baseline my-baseline           # confirm to submit
 
 You will see the full payload before anything is sent. It never includes prompt or output text.
 
-Records land in `tracker/data/community/` via pull request (or `pending/` for manual submission).
+After you confirm, `cngx submit` POSTs the JSON to a serverless endpoint. No GitHub account, no pull request, no API keys. No personal identity is collected or stored anywhere in the pipeline.
+
+New records appear on the live tracker within a few minutes (browser cache is short).
 
 Schema details: [tracker/README.md](https://github.com/aadi-joshi/cngx/blob/main/tracker/README.md)
 

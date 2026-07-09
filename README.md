@@ -177,7 +177,7 @@ Set `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GOOGLE_API_KEY` before `wrap` or 
 
 ## Public drift tracker
 
-The [cngx Drift Tracker](https://aadi-joshi.github.io/cngx/) is a static site of opt-in, anonymous fingerprint trends (depth, verification, hedging, drift vs each submitter's baseline). No prompts or outputs are published.
+The [cngx Drift Tracker](https://aadi-joshi.github.io/cngx/) is a static site of opt-in, anonymous fingerprint trends (depth, verification, hedging, drift vs each submitter's baseline). No prompts or outputs are published. Submissions require no GitHub account; no personal identity is collected or stored.
 
 ![cngx drift tracker](docs/assets/tracker-demo.png)
 
@@ -214,7 +214,7 @@ Fingerprint metrics are **heuristic and regex-based**, not semantic understandin
 
 ## Local-first, no cloud
 
-cngx runs entirely on your machine. No account, no telemetry, no bill. Traces and fingerprints live in a local DuckDB file under `.cngx/`. The proxy binds to `127.0.0.1` by default. The only data that leaves your machine is what you explicitly choose to send via `cngx submit` after a preview-and-confirm step.
+cngx runs entirely on your machine. No account, no telemetry, no bill. Traces and fingerprints live in a local DuckDB file under `.cngx/`. The proxy binds to `127.0.0.1` by default. The only data that leaves your machine is what you explicitly choose to send via `cngx submit` after a preview-and-confirm step. That path carries numeric metrics only; no personal identity is collected or stored anywhere in the pipeline.
 
 ---
 

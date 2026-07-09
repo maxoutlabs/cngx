@@ -20,6 +20,25 @@ ASSETS_DIR = REPO_ROOT / "docs" / "assets"
 SITE_DIR = TRACKER_ROOT / "site"
 ANNOTATIONS_FILE = DATA_DIR / "annotations.json"
 GITHUB_REPO = "https://github.com/aadi-joshi/cngx"
+PUBLIC_ENDPOINTS_FILE = TRACKER_ROOT / "public_endpoints.json"
+
+
+def _tracker_live_index_url() -> str:
+    if PUBLIC_ENDPOINTS_FILE.is_file():
+        with open(PUBLIC_ENDPOINTS_FILE, encoding="utf-8") as f:
+            data = json.load(f)
+        url = data.get("tracker_index_url", "")
+        if url and "PLACEHOLDER" not in url:
+            return str(url)
+    try:
+        from cngx.tracker_endpoints import tracker_index_url
+
+        url = tracker_index_url()
+        if url and "PLACEHOLDER" not in url:
+            return url
+    except Exception:
+        pass
+    return ""
 
 # Option (b): default to empty community view; samples behind explicit toggle.
 # Reason: the project has no real community submissions yet. Showing unlabeled or
@@ -129,7 +148,7 @@ def render_index(community_count: int, sample_count: int) -> str:
   <main class="page">
     <p class="lede">Public, anonymous reasoning fingerprints from opt-in <code>cngx submit</code> runs. No prompts. No outputs. No vendor dashboards.</p>
 
-    <p class="status-line">community records: <strong>{community_count}</strong> · illustrative samples available: <strong>{sample_count}</strong></p>
+    <p class="status-line">community records: <strong id="community-status">{community_count}</strong> · illustrative samples available: <strong>{sample_count}</strong></p>
 
     <section class="section" aria-labelledby="charts-heading">
       <h2 id="charts-heading">drift metrics</h2>
@@ -319,8 +338,9 @@ def render_docs() -> str:
       </table>
 
       <h2 id="submit">submit and privacy</h2>
-      <p>By default nothing leaves your machine. <code>cngx submit</code> is opt-in and shows the exact JSON before sending.</p>
-      <p>Submitted payloads contain only: model name, timestamp, numeric metrics, drift score, and your baseline label. No prompts, outputs, trace IDs, or task names.</p>
+      <p>By default nothing leaves your machine. <code>cngx submit</code> is opt-in, shows the exact JSON before sending, and posts only after you confirm.</p>
+      <p>Submitted payloads contain only: model name, timestamp, numeric metrics, drift score, and your baseline label. No prompts, outputs, trace IDs, or task names. No personal identity is collected or stored anywhere in the pipeline.</p>
+      <p>No GitHub account or pull request is required.</p>
       {blocks["submit"]}
 
       <h2 id="schema">tracker schema</h2>
@@ -370,6 +390,10 @@ def write_data_js(community_by_model: dict, sample_by_model: dict, annotations: 
         f.write(";\nwindow.TRACKER_META = ")
         json.dump(meta, f, indent=2)
         f.write(";\n")
+        if _tracker_live_index_url():
+            f.write("window.TRACKER_LIVE_URL = ")
+            json.dump(_tracker_live_index_url(), f)
+            f.write(";\n")
 
 
 def copy_static_assets() -> None:

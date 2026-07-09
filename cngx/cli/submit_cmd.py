@@ -3,17 +3,16 @@
 from __future__ import annotations
 
 import json
-import shutil
-import subprocess
-import uuid
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Optional
 
+import httpx
 import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
+
+from cngx.tracker_endpoints import submit_url
 
 console = Console(stderr=True)
 
@@ -65,23 +64,6 @@ FORBIDDEN_SUBMIT_KEYS: frozenset[str] = frozenset(
 MAX_STRING_LEN = 128
 
 
-def _find_tracker_root(start: Optional[Path] = None) -> Path:
-    """Locate tracker/ directory (repo root or CNGX_TRACKER_PATH)."""
-    import os
-
-    env = os.getenv("CNGX_TRACKER_PATH")
-    if env:
-        p = Path(env)
-        if (p / "data").is_dir():
-            return p
-    cwd = start or Path.cwd()
-    for candidate in [cwd, *cwd.parents]:
-        tracker = candidate / "tracker"
-        if (tracker / "data").is_dir():
-            return tracker
-    return cwd / "tracker"
-
-
 def build_submit_payload(
     fp,
     baseline_label: str,
@@ -89,6 +71,8 @@ def build_submit_payload(
     record_id: Optional[str] = None,
 ) -> dict[str, Any]:
     """Build an anonymized submission record from a fingerprint."""
+    import uuid
+
     return {
         "schema_version": SCHEMA_VERSION,
         "record_id": record_id or str(uuid.uuid4()),
@@ -176,104 +160,38 @@ def collect_payloads(
     return payloads
 
 
-def _write_pending(tracker_root: Path, payload: dict[str, Any]) -> Path:
-    pending = tracker_root / "data" / "community" / "pending"
-    pending.mkdir(parents=True, exist_ok=True)
-    out = pending / f"{payload['record_id']}.json"
-    with open(out, "w", encoding="utf-8") as f:
-        json.dump(payload, f, indent=2)
-        f.write("\n")
-    return out
+def post_submit_payload(
+    payload: dict[str, Any],
+    endpoint: Optional[str] = None,
+    client: Optional[httpx.Client] = None,
+) -> str:
+    """POST one validated record to the public tracker API. Returns record_id."""
+    validate_submit_payload(payload)
+    url = endpoint or submit_url()
+    if "PLACEHOLDER" in url:
+        raise RuntimeError(
+            "Tracker submit endpoint is not configured. Set CNGX_SUBMIT_URL or update "
+            "cngx/tracker_endpoints.py after deploying infra/."
+        )
 
-
-def _github_repo_slug(repo_root: Path) -> Optional[str]:
-    """Resolve owner/repo from origin remote (for gh pr create --repo)."""
+    owns_client = client is None
+    http = client or httpx.Client(timeout=30.0)
     try:
-        result = subprocess.run(
-            ["git", "remote", "get-url", "origin"],
-            cwd=repo_root,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return None
-    url = result.stdout.strip().rstrip("/")
-    if url.endswith(".git"):
-        url = url[:-4]
-    if "github.com:" in url:
-        return url.split("github.com:", 1)[1]
-    if "github.com/" in url:
-        return url.split("github.com/", 1)[1]
-    return None
+        response = http.post(url, json=payload)
+    finally:
+        if owns_client:
+            http.close()
 
+    if response.status_code == 201:
+        data = response.json()
+        return str(data.get("record_id", payload["record_id"]))
 
-def _try_gh_pr(tracker_root: Path, payload: dict[str, Any], repo_root: Path) -> bool:
-    """Create community JSON and open PR via gh CLI. Returns True on success."""
-    if not shutil.which("gh"):
-        return False
-    community = tracker_root / "data" / "community"
-    community.mkdir(parents=True, exist_ok=True)
-    rel = f"tracker/data/community/{payload['record_id']}.json"
-    out = repo_root / rel
-    out.parent.mkdir(parents=True, exist_ok=True)
-    with open(out, "w", encoding="utf-8") as f:
-        json.dump(payload, f, indent=2)
-        f.write("\n")
-
-    branch = f"submit/{payload['record_id'][:8]}"
-    title = f"community: drift record {payload['model']} ({payload['record_id'][:8]})"
-    body = (
-        "Anonymous community drift submission via `cngx submit`.\n\n"
-        f"- Model: `{payload['model']}`\n"
-        f"- Baseline label: `{payload['baseline_label']}`\n"
-        f"- Drift score: `{payload['drift_score']}`\n"
-        f"- Timestamp: `{payload['timestamp']}`\n\n"
-        "No prompt or output text is included."
-    )
+    detail = response.text[:500]
     try:
-        subprocess.run(
-            ["git", "checkout", "-b", branch],
-            cwd=repo_root,
-            check=True,
-            capture_output=True,
-        )
-        subprocess.run(["git", "add", rel], cwd=repo_root, check=True, capture_output=True)
-        subprocess.run(
-            ["git", "commit", "-m", title],
-            cwd=repo_root,
-            check=True,
-            capture_output=True,
-        )
-        subprocess.run(
-            ["git", "push", "-u", "origin", branch],
-            cwd=repo_root,
-            check=True,
-            capture_output=True,
-        )
-        pr_cmd = ["gh", "pr", "create", "--title", title, "--body", body]
-        repo_slug = _github_repo_slug(repo_root)
-        if repo_slug:
-            pr_cmd.extend(["--repo", repo_slug])
-        subprocess.run(
-            pr_cmd,
-            cwd=repo_root,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        subprocess.run(
-            ["git", "checkout", "-"],
-            cwd=repo_root,
-            check=False,
-            capture_output=True,
-        )
-        return True
-    except subprocess.CalledProcessError:
-        subprocess.run(["git", "checkout", "-"], cwd=repo_root, check=False, capture_output=True)
-        if out.exists():
-            out.unlink()
-        return False
+        detail = response.json().get("error", detail)
+    except Exception:
+        pass
+    raise RuntimeError(f"Submit failed ({response.status_code}): {detail}")
 
 
 def run_submit(
@@ -282,6 +200,7 @@ def run_submit(
     limit: int = 5,
     yes: bool = False,
     dry_run: bool = False,
+    endpoint: Optional[str] = None,
 ) -> int:
     """Preview, confirm, and submit anonymized drift records."""
     try:
@@ -303,7 +222,8 @@ def run_submit(
         Panel(
             "[bold]Preview, exact payload(s) to submit[/]\n\n"
             "Contains ONLY model name, timestamp, numeric metrics, drift score, "
-            "and your baseline label. [bold]No prompts or outputs.[/]",
+            "and your baseline label. [bold]No prompts or outputs.[/]\n\n"
+            "No personal identity is collected or stored. No GitHub account required.",
             border_style="cyan",
         )
     )
@@ -322,30 +242,19 @@ def run_submit(
             console.print("[yellow]Cancelled. Nothing was sent.[/]")
             return 0
 
-    tracker_root = _find_tracker_root()
-    repo_root = tracker_root.parent
     submitted = 0
-    for payload in payloads:
-        validate_submit_payload(payload)
-        if _try_gh_pr(tracker_root, payload, repo_root):
-            console.print(f"[green]OK[/] Opened PR for {payload['record_id']}")
-            submitted += 1
-        else:
-            path = _write_pending(tracker_root, payload)
-            console.print(
-                Panel(
-                    f"[green]OK[/] Wrote [cyan]{path}[/]\n\n"
-                    "No GitHub CLI access, open a PR manually:\n"
-                    f"  1. Copy to [cyan]tracker/data/community/{payload['record_id']}.json[/]\n"
-                    "  2. git checkout -b submit/your-name\n"
-                    "  3. git add tracker/data/community/\n"
-                    "  4. git commit -m 'community: drift submission'\n"
-                    "  5. git push && gh pr create",
-                    title="Manual submission",
-                    border_style="yellow",
-                )
-            )
+    with httpx.Client(timeout=30.0) as client:
+        for payload in payloads:
+            try:
+                record_id = post_submit_payload(payload, endpoint=endpoint, client=client)
+            except Exception as exc:
+                console.print(f"[red]Submit failed for {payload['record_id']}: {exc}[/]")
+                return 1
+            console.print(f"[green]OK[/] Submitted {record_id}")
             submitted += 1
 
-    console.print(f"[bold]Done.[/] {submitted} record(s) prepared.")
+    console.print(
+        f"[bold]Done.[/] {submitted} record(s) sent. "
+        "Live tracker updates within a few minutes."
+    )
     return 0

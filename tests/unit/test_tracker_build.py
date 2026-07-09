@@ -49,6 +49,7 @@ def test_build_writes_docs_and_split_data_js(tmp_path, monkeypatch):
     payload = data_js.read_text(encoding="utf-8")
     assert "TRACKER_SAMPLE_DATA" in payload
     assert "TRACKER_DATA" in payload
+    assert "TRACKER_LIVE_URL" in payload
 
     community = load_community_records()
     community_by_model = aggregate_by_model(community)
