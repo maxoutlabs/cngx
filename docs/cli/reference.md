@@ -74,7 +74,9 @@ Without a pinned baseline, exits with a message to run `pin` first.
 
 ## check
 
-Check a prompt against a YAML policy. CI-friendly exit codes.
+Check a prompt or existing agent output against a YAML policy. CI-friendly exit codes.
+
+**Online (default):** capture a new model response, then gate it.
 
 ```bash
 cngx check -c examples/contracts/basic_reasoning.yaml \
@@ -82,11 +84,25 @@ cngx check -c examples/contracts/basic_reasoning.yaml \
   --adapter mock --model mock-model
 ```
 
+**Offline:** fingerprint and gate agent output that already exists. No provider calls.
+
+```bash
+cngx check -c examples/contracts/coding_agent_fix.yaml \
+  -p "Fix the pagination bug and run tests" \
+  --response-file agent_output.txt
+
+echo "$AGENT_OUTPUT" | cngx check -c policy.yaml -p "Fix bug" --response-file -
+```
+
 | Flag | Description |
 |------|-------------|
 | `-c`, `--policy` | Policy YAML path (required) |
-| `-m`, `--model` | Model name (default `mock-model`) |
-| `-a`, `--adapter` | `mock`, `openai`, `gemini`, `claude` |
+| `-p`, `--prompt` | Task prompt when not passed positionally |
+| `-r`, `--response` | Inline agent output (offline) |
+| `-f`, `--response-file` | Agent output file; `-` reads stdin (offline) |
+| `--reasoning-file` | Optional chain-of-thought file (offline) |
+| `-m`, `--model` | Model name (default `mock-model` online, `offline` offline) |
+| `-a`, `--adapter` | `mock`, `openai`, `gemini`, `claude` (online only) |
 | `-t`, `--task` | Task ID for capture |
 | `-j`, `--json` | JSON output |
 
