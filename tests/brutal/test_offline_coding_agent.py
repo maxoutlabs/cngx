@@ -25,7 +25,9 @@ def scenario():
 
 class TestOfflineCodingAgentGate:
     def test_policy_file_exists(self):
-        assert POLICY.is_file(), "examples/contracts/coding_agent_verification.yaml must be committed"
+        assert (
+            POLICY.is_file()
+        ), "examples/contracts/coding_agent_verification.yaml must be committed"
 
     def test_shallow_fixture_blocks_via_extractor(self, scenario):
         output = SHALLOW.read_text(encoding="utf-8")
