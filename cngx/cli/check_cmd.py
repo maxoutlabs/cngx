@@ -24,6 +24,85 @@ def _load_policy(path: Path):
     return BehaviorContract.from_json(path)
 
 
+def _load_text_file(path: Path) -> str:
+    """Read text from a file path. Use '-' for stdin."""
+    if str(path) == "-":
+        return sys.stdin.read()
+    return path.read_text(encoding="utf-8")
+
+
+def _resolve_prompt(
+    prompt_arg: Optional[str], prompt_opt: Optional[str]
+) -> tuple[Optional[str], Optional[int]]:
+    text = prompt_arg or prompt_opt
+    if not text or not text.strip():
+        console.print("[red]Prompt is required (positional argument or --prompt)[/]")
+        return None, 2
+    return text, None
+
+
+def _resolve_response_text(
+    response: Optional[str],
+    response_file: Optional[Path],
+) -> tuple[Optional[str], Optional[int]]:
+    if response is not None and response_file is not None:
+        console.print("[red]Use only one of --response or --response-file[/]")
+        return None, 2
+    if response is not None:
+        return response, None
+    if response_file is not None:
+        return _load_text_file(response_file), None
+    console.print(
+        "[red]Agent output required for offline check: "
+        "use --response, --response-file, or pipe to --response-file -[/]"
+    )
+    return None, 2
+
+
+def run_policy_check(
+    policy: Path,
+    prompt: Optional[str] = None,
+    prompt_opt: Optional[str] = None,
+    response: Optional[str] = None,
+    response_file: Optional[Path] = None,
+    reasoning_file: Optional[Path] = None,
+    model: str = "mock-model",
+    adapter: str = "mock",
+    task_id: str = "policy_check",
+    json_output: bool = False,
+) -> int:
+    """Route to offline or online policy check based on response inputs."""
+    offline = response is not None or response_file is not None
+    prompt_text, prompt_err = _resolve_prompt(prompt, prompt_opt)
+    if prompt_err is not None:
+        return prompt_err
+
+    if offline:
+        output_text, output_err = _resolve_response_text(response, response_file)
+        if output_err is not None:
+            return output_err
+        reasoning_content = _load_text_file(reasoning_file) if reasoning_file else None
+        offline_model = model if model != "mock-model" else "offline"
+        return run_offline_check(
+            prompt=prompt_text,
+            output=output_text,
+            policy=policy,
+            model=offline_model,
+            task_id=task_id,
+            reasoning_content=reasoning_content,
+            json_output=json_output,
+        )
+
+    return run_check(
+        prompt_text,
+        policy,
+        model,
+        adapter,
+        task_id,
+        json_output,
+    )
+
+
 def run_offline_check(
     prompt: str,
     output: str,
@@ -161,18 +240,60 @@ def _format_policy_report(result) -> str:
 
 @app.command()
 def check(
-    prompt: str = typer.Argument(..., help="Prompt to evaluate"),
+    prompt: Optional[str] = typer.Argument(
+        None,
+        help="Prompt or task description (required for online capture)",
+    ),
     policy: Path = typer.Option(..., "--policy", "-c", help="Policy YAML file"),
+    prompt_opt: Optional[str] = typer.Option(
+        None,
+        "--prompt",
+        "-p",
+        help="Prompt text when not passed as a positional argument",
+    ),
+    response: Optional[str] = typer.Option(
+        None,
+        "--response",
+        "-r",
+        help="Existing agent output to fingerprint and gate (offline, no LLM)",
+    ),
+    response_file: Optional[Path] = typer.Option(
+        None,
+        "--response-file",
+        "-f",
+        help="File with agent output; use - for stdin (offline, no LLM)",
+    ),
+    reasoning_file: Optional[Path] = typer.Option(
+        None,
+        "--reasoning-file",
+        help="Optional chain-of-thought file for offline check",
+    ),
     model: str = typer.Option("mock-model", "--model", "-m"),
     adapter: str = typer.Option("mock", "--adapter", "-a", help="mock, openai, gemini, claude"),
     task_id: str = typer.Option("policy_check", "--task", "-t"),
     json_output: bool = typer.Option(False, "--json", "-j"),
 ) -> None:
-    """Check whether a prompt satisfies a behavior policy.
+    """Check agent output against a behavior policy.
 
-    Exit codes: 0 pass, 1 blocked, 2 failed (soft violations).
+    Online (default): capture a new model response, then gate it.
+    Offline: pass --response or --response-file to gate existing output with zero provider calls.
+
+    Exit codes: 0 pass, 1 blocked, 2 failed (soft violations or input errors).
     """
-    raise typer.Exit(run_check(prompt, policy, model, adapter, task_id, json_output))
+    raise typer.Exit(
+        run_policy_check(
+            policy=policy,
+            prompt=prompt,
+            prompt_opt=prompt_opt,
+            response=response,
+            response_file=response_file,
+            reasoning_file=reasoning_file,
+            model=model,
+            adapter=adapter,
+            task_id=task_id,
+            json_output=json_output,
+        )
+    )
 
 
 if __name__ == "__main__":

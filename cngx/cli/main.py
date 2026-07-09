@@ -232,8 +232,25 @@ app.command("diff")(diff_cmd)
 
 @app.command()
 def check(
-    prompt: str = typer.Argument(..., help="Prompt to check"),
+    prompt: Optional[str] = typer.Argument(
+        None,
+        help="Prompt or task description",
+    ),
     policy: Path = typer.Option(..., "--policy", "-c", help="Policy YAML"),
+    prompt_opt: Optional[str] = typer.Option(None, "--prompt", "-p"),
+    response: Optional[str] = typer.Option(
+        None,
+        "--response",
+        "-r",
+        help="Existing agent output (offline, no LLM)",
+    ),
+    response_file: Optional[Path] = typer.Option(
+        None,
+        "--response-file",
+        "-f",
+        help="Agent output file; use - for stdin (offline)",
+    ),
+    reasoning_file: Optional[Path] = typer.Option(None, "--reasoning-file"),
     model: str = typer.Option("mock-model", "--model", "-m"),
     adapter: str = typer.Option("mock", "--adapter", "-a"),
     task_id: str = typer.Option("policy_check", "--task", "-t"),
@@ -244,11 +261,26 @@ def check(
     Answers: did this model response actually perform the verification your policy
     requires (tests, repro steps, explicit checks)? CI-friendly exit codes.
 
+    Pass --response or --response-file to gate existing agent output without calling a provider.
+
     For continued agent runs, use watch, pin, and diff to detect session-level drift.
     """
-    from cngx.cli.check_cmd import run_check
+    from cngx.cli.check_cmd import run_policy_check
 
-    raise typer.Exit(run_check(prompt, policy, model, adapter, task_id, json_output))
+    raise typer.Exit(
+        run_policy_check(
+            policy=policy,
+            prompt=prompt,
+            prompt_opt=prompt_opt,
+            response=response,
+            response_file=response_file,
+            reasoning_file=reasoning_file,
+            model=model,
+            adapter=adapter,
+            task_id=task_id,
+            json_output=json_output,
+        )
+    )
 
 
 @app.command()
