@@ -61,6 +61,7 @@ nav:
     - Session Trajectories: concepts/sessions.md
   - CLI Reference: cli/reference.md
   - Guides:
+    - Gate a Coding Agent: guides/gate-coding-agent.md
     - Wrap Your Agent: guides/wrap-agent.md
     - The Proxy and Your Privacy: guides/proxy-and-privacy.md
     - The Public Drift Log: guides/public-drift-log.md
