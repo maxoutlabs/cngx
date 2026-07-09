@@ -111,7 +111,7 @@ cngx submit --baseline my-baseline --dry-run
 cngx submit --baseline my-baseline
 ```
 
-Shows exact JSON preview; requires confirmation unless `--yes`. Never includes prompt or output text. See [Public Drift Log](../guides/public-drift-log.md).
+Shows exact JSON preview; requires confirmation unless `--yes`. Never includes prompt or output text. Posts to the public tracker API (no GitHub account). No personal identity is collected or stored. See [Public Drift Log](../guides/public-drift-log.md).
 
 ## status
 

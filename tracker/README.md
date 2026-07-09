@@ -4,9 +4,9 @@ Static public site for opt-in community drift metrics. Built with plain Python (
 
 ## Sample data policy
 
-**Default view: empty community charts.** Sample records in `data/samples/` are bundled for pipeline testing and illustration only. They are exposed in the browser behind an explicit **"show illustrative sample"** toggle, not on first load.
+**Default view: empty community charts until live data loads.** The browser fetches aggregated community metrics from a public S3 index every few minutes. Sample records in `data/samples/` are bundled for pipeline testing and illustration only. They are exposed behind an explicit **"show illustrative sample"** toggle, not on first load.
 
-Reason: the project has no real community submissions yet. Showing demo charts by default reads as fake traction to cold visitors. An honest empty state plus opt-in samples is more respectable.
+Community submissions arrive via `cngx submit` (HTTPS POST). No GitHub pull requests. No personal identity is collected or stored.
 
 ## Directory layout
 
@@ -16,7 +16,7 @@ tracker/
 ├── build.py            # Builds site/ (index + docs/)
 ├── static/
 │   ├── site.css        # Shared minimal styles
-│   ├── app.js          # Tracker charts + sample toggle
+│   ├── app.js          # Tracker charts + live S3 fetch + sample toggle
 │   └── docs.js         # Docs sidebar + copy buttons
 ├── scripts/
 │   └── capture_screenshots.py  # Playwright visual + dash verification

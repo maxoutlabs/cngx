@@ -1,28 +1,36 @@
 /**
  * cngx drift tracker charts.
- * Community data is default. Sample data is opt-in via toggle only.
+ * Community data loads from the public S3 index (live) with a short cache.
+ * Illustrative samples stay bundled in data.js behind an explicit toggle.
  */
 (function () {
   const FG = "#ffffff";
   const MUTED = "#666666";
   const LINE = "#333333";
   const GRID = "#1a1a1a";
+  const LIVE_CACHE_MS = 2 * 60 * 1000;
 
-  const communityData = window.TRACKER_DATA || {};
+  const embeddedCommunity = window.TRACKER_DATA || {};
   const sampleData = window.TRACKER_SAMPLE_DATA || {};
   const meta = window.TRACKER_META || {};
+  const liveUrl = window.TRACKER_LIVE_URL || "";
 
+  let communityData = { ...embeddedCommunity };
   let showingSample = false;
   let active = null;
   const charts = [];
+  let liveFetchedAt = 0;
 
   function currentData() {
     return showingSample ? sampleData : communityData;
   }
 
   function currentModels() {
-    const data = currentData();
-    return Object.keys(data);
+    return Object.keys(currentData());
+  }
+
+  function liveRecordCount() {
+    return Object.values(communityData).reduce((sum, rows) => sum + rows.length, 0);
   }
 
   const chartDefaults = {
@@ -58,7 +66,7 @@
   }
 
   function makeChart(canvasId, label, field, yOpts) {
-    const recs = (currentData()[active] || []);
+    const recs = currentData()[active] || [];
     const ctx = document.getElementById(canvasId);
     if (!ctx || !recs.length) return null;
 
@@ -104,7 +112,7 @@
   }
 
   function updateEmptyState() {
-    const hasCommunity = (meta.community_record_count || 0) > 0;
+    const hasCommunity = liveRecordCount() > 0;
     const hasSample = (meta.sample_record_count || 0) > 0;
     const showCharts = showingSample ? hasSample : hasCommunity;
 
@@ -119,6 +127,11 @@
       toggle.textContent = showingSample
         ? "hide illustrative sample"
         : "show illustrative sample";
+    }
+
+    const status = document.getElementById("community-status");
+    if (status) {
+      status.textContent = String(liveRecordCount());
     }
   }
 
@@ -213,12 +226,39 @@
     });
   }
 
+  async function refreshLiveData(force) {
+    if (!liveUrl) return;
+    const now = Date.now();
+    if (!force && liveFetchedAt && now - liveFetchedAt < LIVE_CACHE_MS) {
+      return;
+    }
+    try {
+      const response = await fetch(liveUrl, { cache: "no-store" });
+      if (!response.ok) return;
+      const payload = await response.json();
+      if (payload && payload.by_model && typeof payload.by_model === "object") {
+        communityData = payload.by_model;
+        liveFetchedAt = now;
+        active = null;
+        updateEmptyState();
+        renderTabs();
+        renderCharts();
+      }
+    } catch (_err) {
+      // keep embedded fallback silently
+    }
+  }
+
   function init() {
     updateEmptyState();
     bindSampleToggle();
     renderTabs();
     renderCharts();
     initAnnotations();
+    refreshLiveData(false);
+    if (liveUrl) {
+      setInterval(() => refreshLiveData(false), LIVE_CACHE_MS);
+    }
   }
 
   init();

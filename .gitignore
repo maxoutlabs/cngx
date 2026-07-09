@@ -39,6 +39,10 @@ tracker/screenshots/
 # VHS tooling (MSVC ttyd binaries, not committed)
 .vhs-tools/
 
+# AWS CDK
+infra/cdk.out/
+infra/.venv/
+
 # IDE and OS
 .vscode/
 .idea/
