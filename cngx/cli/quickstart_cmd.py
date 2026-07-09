@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime
 
 from rich.console import Console
 from rich.panel import Panel
@@ -11,11 +10,16 @@ from rich.rule import Rule
 
 console = Console(stderr=True)
 
+QUICKSTART_SHALLOW_OUTPUT = (
+    "Patch: use items[(page - 1) * size : page * size] for 1-based pages. " "Ready to merge."
+)
+
 
 def run_quickstart() -> None:
     """Run polished mock-adapter demo in under 30 seconds."""
+    from cngx.capture.trace_builder import build_trace_from_text
     from cngx.contracts import DeploymentGate
-    from cngx.core.models import BehavioralFingerprint, ReasoningTrace, TokenUsage
+    from cngx.fingerprint.extractor import FingerprintExtractor
     from cngx.system_demo.runner import run_without_cngx
     from cngx.system_demo.scenarios import CodingAgentFixScenario
 
@@ -50,50 +54,17 @@ def run_quickstart() -> None:
         console.print(f"  [dim]{without.silent_failure_description}[/]")
     console.print()
 
-    # Deterministic degraded fingerprint: plausible patch, zero verification steps
-    shallow_trace = ReasoningTrace(
-        id="quickstart_shallow",
-        timestamp=datetime.utcnow(),
-        task_id="coding_agent_fix",
-        model="mock-model",
-        adapter_type="mock",
+    # Offline gate: plausible patch text, zero verification steps in fingerprint
+    shallow_trace = build_trace_from_text(
         prompt=scenario.problem,
-        output=(
-            "Patch: use items[(page - 1) * size : page * size] for 1-based pages. "
-            "Ready to merge."
-        ),
-        reasoning_content=("The slice offset is wrong for page 1. Adjust indices and merge."),
-        token_usage=TokenUsage(prompt_tokens=48, completion_tokens=18, total_tokens=66),
-    )
-    shallow_fp = BehavioralFingerprint(
-        trace_id=shallow_trace.id,
+        output=QUICKSTART_SHALLOW_OUTPUT,
         task_id="coding_agent_fix",
-        timestamp=datetime.utcnow(),
         model="mock-model",
-        depth=1,
-        branching_factor=0.0,
-        total_steps=1,
-        max_step_length=80,
-        tool_call_count=0,
-        tool_call_sequence=[],
-        tool_diversity=0.0,
-        tool_success_rate=1.0,
-        output_length=90,
-        reasoning_length=55,
-        compression_ratio=1.0,
-        avg_sentence_length=12.0,
-        correction_count=0,
-        backtrack_count=0,
-        revision_count=0,
-        uncertainty_markers=0,
-        confidence_markers=1,
-        hedging_ratio=0.0,
-        verification_steps=0,
-        example_count=0,
-        structured_output=False,
-        tokens_per_step=18.0,
-        reasoning_overhead=0.0,
+        adapter_type="offline",
+        trace_id="quickstart_shallow",
+        reasoning_content="The slice offset is wrong for page 1. Adjust indices and merge.",
     )
+    shallow_fp = FingerprintExtractor().extract(shallow_trace)
 
     gate = DeploymentGate()
     gate_result = gate.check(shallow_fp, scenario.contract, shallow_trace)

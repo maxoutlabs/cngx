@@ -15,6 +15,14 @@ cngx quickstart          # mock demo, no API keys, under 30s
 cngx check -c examples/contracts/basic_reasoning.yaml "Fix the bug and run the test suite"
 ```
 
+Gate existing agent output with no provider calls:
+
+```bash
+cngx check -c examples/contracts/coding_agent_fix.yaml \
+  -p "Fix the pagination bug and run tests" \
+  --response-file agent_output.txt
+```
+
 Python 3.10+. Requires [pipx](https://pipx.pypa.io/) or `pip install cngx`. See [installation](docs/getting-started/installation.md).
 
 ## What it does
