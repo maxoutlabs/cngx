@@ -49,12 +49,9 @@ cngx wrap --no-start-proxy -- aider    # terminal 2
 
 ## Google Gemini note
 
-The official **google-genai** Python SDK does **not** read a base-URL environment variable. For Gemini you must either:
+`cngx wrap` cannot proxy Gemini. The official **google-genai** Python SDK does **not** read a base-URL environment variable. If your command mentions `gemini`, or `GOOGLE_API_KEY` / `GEMINI_API_KEY` is the only provider key set, wrap prints a one-line warning and continues (OpenAI/Anthropic env injection still happens for other tools).
 
-- use manual proxy configuration in code (`http_options.base_url`), or
-- use the [manual base URL setup](proxy-and-privacy.md) if your tool supports it.
-
-The JavaScript `@google/genai` SDK supports `GOOGLE_GEMINI_BASE_URL`; cngx does not set that today because the proxy path is OpenAI/Anthropic-shaped in v0.1.5.
+For Gemini use `cngx check --adapter gemini` instead. Manual `http_options.base_url` in your own code is possible but unsupported by wrap.
 
 ## Live dashboard (optional)
 

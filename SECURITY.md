@@ -21,7 +21,9 @@ cngx is **local-first**:
 | Telemetry | **None.** No phone-home, no usage analytics, no crash reporting to a vendor backend. |
 | Outbound network (proxy) | Only traffic you initiate: forwarded requests to the LLM provider you configured. |
 
-The only exception is **`cngx submit`**: optional sharing of allowlisted drift summaries to the community tracker, with an **explicit preview-and-confirm** step before anything is sent. Nothing is uploaded by default. CDN/API access logs may still exist on the tracker infrastructure; the submit payload itself contains no prompts or outputs.
+The only exception is **`cngx submit`**: optional sharing of allowlisted drift summaries to the community tracker, with an **explicit preview-and-confirm** step before anything is sent. Nothing is uploaded by default. CDN/API access logs may still exist on the tracker infrastructure (GitHub Pages / edge); the submit payload itself contains no prompts or outputs.
+
+The community tracker static site loads **Chart.js** (and a date adapter) from the jsDelivr CDN. That is a third-party script dependency of the tracker page only, not of the `cngx` CLI.
 
 ## Scope
 

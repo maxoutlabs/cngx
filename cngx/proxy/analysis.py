@@ -87,6 +87,79 @@ def _build_trace_from_openai(
     )
 
 
+def _anthropic_system_message(request_body: dict) -> Optional[str]:
+    system = request_body.get("system")
+    if isinstance(system, str):
+        return system
+    if isinstance(system, list):
+        parts = []
+        for block in system:
+            if isinstance(block, dict) and block.get("type") == "text":
+                parts.append(str(block.get("text", "")))
+            elif isinstance(block, str):
+                parts.append(block)
+        return "\n".join(p for p in parts if p) or None
+    return None
+
+
+def _anthropic_text_from_content(content: object) -> str:
+    if isinstance(content, str):
+        return content
+    if not isinstance(content, list):
+        return ""
+    parts: list[str] = []
+    for block in content:
+        if not isinstance(block, dict):
+            continue
+        if block.get("type") == "text" and block.get("text"):
+            parts.append(str(block["text"]))
+    return "".join(parts)
+
+
+def _build_trace_from_anthropic(
+    request_body: dict,
+    response_body: dict,
+    task_id: str,
+    latency_ms: float,
+    session_id: str,
+    session_turn: int,
+) -> ReasoningTrace:
+    model = request_body.get("model") or response_body.get("model") or "unknown"
+    messages = request_body.get("messages", [])
+    prompt = _extract_prompt(messages)
+    output = _anthropic_text_from_content(response_body.get("content"))
+    reasoning = response_body.get("reasoning_content")
+
+    usage = response_body.get("usage") or {}
+    prompt_tokens = int(usage.get("input_tokens") or usage.get("prompt_tokens") or 0)
+    completion_tokens = int(usage.get("output_tokens") or usage.get("completion_tokens") or 0)
+    token_usage = TokenUsage(
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        total_tokens=prompt_tokens + completion_tokens,
+    )
+
+    return ReasoningTrace(
+        id=f"trace_{uuid.uuid4().hex[:12]}",
+        timestamp=datetime.utcnow(),
+        task_id=task_id,
+        model=model,
+        adapter_type="anthropic",
+        system_message=_anthropic_system_message(request_body),
+        prompt=prompt,
+        messages=messages if isinstance(messages, list) else [],
+        output=output,
+        reasoning_content=reasoning if isinstance(reasoning, str) else None,
+        token_usage=token_usage,
+        latency_ms=latency_ms,
+        model_config_params=ModelConfig(
+            temperature=request_body.get("temperature", 1.0),
+            max_tokens=request_body.get("max_tokens"),
+        ),
+        metadata={"source": "proxy", "session_id": session_id, "session_turn": session_turn},
+    )
+
+
 def _find_pinned_baseline(task_id: str, model: str):
     db = get_database()
     baselines = db.get_baselines_for_task(task_id)
@@ -124,6 +197,60 @@ def _parse_openai_response(response_bytes: bytes, was_stream: bool) -> dict | No
             except json.JSONDecodeError:
                 continue
         return {"choices": [{"message": {"content": content}}], "usage": {}}
+    try:
+        return json.loads(response_bytes)
+    except json.JSONDecodeError:
+        return None
+
+
+def _parse_anthropic_response(response_bytes: bytes, was_stream: bool) -> dict | None:
+    """Parse Anthropic Messages JSON or SSE into a non-stream-shaped body."""
+    if not response_bytes.strip():
+        return None
+    text = response_bytes.decode("utf-8", errors="replace")
+    if was_stream or "data:" in text[:200] or text.lstrip().startswith("event:"):
+        content_parts: list[str] = []
+        thinking_parts: list[str] = []
+        usage: dict = {}
+        model = None
+        for line in text.split("\n"):
+            line = line.strip()
+            if not line.startswith("data:"):
+                continue
+            payload = line[5:].strip()
+            if not payload or payload == "[DONE]":
+                continue
+            try:
+                event = json.loads(payload)
+            except json.JSONDecodeError:
+                continue
+            etype = event.get("type")
+            if etype == "message_start":
+                message = event.get("message") or {}
+                model = message.get("model") or model
+                msg_usage = message.get("usage") or {}
+                if msg_usage:
+                    usage.update(msg_usage)
+            elif etype == "content_block_delta":
+                delta = event.get("delta") or {}
+                dtype = delta.get("type")
+                if dtype == "text_delta" and delta.get("text"):
+                    content_parts.append(str(delta["text"]))
+                elif dtype == "thinking_delta" and delta.get("thinking"):
+                    thinking_parts.append(str(delta["thinking"]))
+            elif etype == "message_delta":
+                delta_usage = (event.get("usage") or {}) if isinstance(event, dict) else {}
+                if delta_usage:
+                    usage.update(delta_usage)
+        body: dict = {
+            "content": [{"type": "text", "text": "".join(content_parts)}],
+            "usage": usage,
+        }
+        if model:
+            body["model"] = model
+        if thinking_parts:
+            body["reasoning_content"] = "".join(thinking_parts)
+        return body
     try:
         return json.loads(response_bytes)
     except json.JSONDecodeError:
@@ -195,22 +322,30 @@ async def analyze_completed_call(
 ) -> None:
     """Capture fingerprint and optional drift check (runs off hot path)."""
     try:
-        if provider != "openai":
+        if provider not in ("openai", "anthropic"):
             return
 
         if not response_bytes.strip():
             return
 
-        response_body = _parse_openai_response(response_bytes, was_stream)
+        if provider == "openai":
+            response_body = _parse_openai_response(response_bytes, was_stream)
+        else:
+            response_body = _parse_anthropic_response(response_bytes, was_stream)
         if response_body is None:
             return
 
         db = get_database()
         session_turn = db.allocate_session_turn(session_id)
 
-        trace = _build_trace_from_openai(
-            request_body, response_body, task_id, latency_ms, session_id, session_turn
-        )
+        if provider == "openai":
+            trace = _build_trace_from_openai(
+                request_body, response_body, task_id, latency_ms, session_id, session_turn
+            )
+        else:
+            trace = _build_trace_from_anthropic(
+                request_body, response_body, task_id, latency_ms, session_id, session_turn
+            )
         extractor = FingerprintExtractor()
         fp = extractor.extract(trace)
         fp.metadata["session_id"] = session_id

@@ -99,8 +99,10 @@ async def proxy_handler(request: Request) -> Response:
 
     client = httpx.AsyncClient(timeout=httpx.Timeout(300.0, connect=30.0))
 
-    if is_stream and provider == "openai":
-        return await _stream_openai(
+    # Stream OpenAI and Anthropic the same way: yield chunks immediately,
+    # fingerprint the buffered copy after the upstream stream completes.
+    if is_stream and provider in ("openai", "anthropic"):
+        return await _stream_and_fingerprint(
             client, url, forward_headers, body_bytes, body, task_id, session_id, provider, start
         )
 
@@ -120,7 +122,7 @@ async def proxy_handler(request: Request) -> Response:
         await client.aclose()
 
 
-async def _stream_openai(
+async def _stream_and_fingerprint(
     client: httpx.AsyncClient,
     url: str,
     headers: dict,
@@ -131,6 +133,7 @@ async def _stream_openai(
     provider: str,
     start: float,
 ) -> StreamingResponse:
+    """Passthrough SSE to the client; fingerprint after the stream ends."""
     collected: list[bytes] = []
 
     async def generate() -> AsyncIterator[bytes]:

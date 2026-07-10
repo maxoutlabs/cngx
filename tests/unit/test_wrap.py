@@ -17,11 +17,13 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 
 from cngx.cli.wrap import (
+    GEMINI_NOT_PROXIED,
     build_wrap_env,
     ensure_proxy_running,
     is_proxy_healthy,
     proxy_root_url,
     run_wrap,
+    should_warn_gemini_not_proxied,
 )
 from cngx.core.config import get_config, reset_config
 from cngx.proxy.config import ProxyConfig
@@ -108,6 +110,44 @@ def test_build_wrap_env_sets_provider_base_urls():
     assert env["OPENAI_API_BASE"] == "http://127.0.0.1:8642/v1"
     assert env["ANTHROPIC_BASE_URL"] == "http://127.0.0.1:8642"
     assert env["CNGX_PROXY_URL"] == "http://127.0.0.1:8642"
+
+
+def test_should_warn_gemini_when_command_mentions_gemini():
+    assert should_warn_gemini_not_proxied(["gemini"], env={"OPENAI_API_KEY": "sk-x"})
+
+
+def test_should_warn_gemini_when_only_gemini_key():
+    assert should_warn_gemini_not_proxied(
+        ["aider"],
+        env={"GOOGLE_API_KEY": "g-x"},
+    )
+    assert should_warn_gemini_not_proxied(
+        ["python", "agent.py"],
+        env={"GEMINI_API_KEY": "g-x"},
+    )
+
+
+def test_should_not_warn_gemini_when_openai_key_present():
+    assert not should_warn_gemini_not_proxied(
+        ["aider"],
+        env={"OPENAI_API_KEY": "sk-x", "GOOGLE_API_KEY": "g-x"},
+    )
+
+
+def test_wrap_prints_gemini_warning(isolated_project, monkeypatch, capsys):
+    monkeypatch.setenv("GOOGLE_API_KEY", "g-test-only")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    port = _free_port()
+    exit_code = run_wrap(
+        [sys.executable, "-c", "print('ok')"],
+        host="127.0.0.1",
+        port=port,
+    )
+    assert exit_code == 0
+    err = capsys.readouterr().err
+    assert GEMINI_NOT_PROXIED in err
 
 
 def test_ensure_proxy_running_starts_health_endpoint(isolated_project):

@@ -20,6 +20,11 @@ DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8642
 PROXY_START_TIMEOUT_S = 10.0
 
+GEMINI_NOT_PROXIED = (
+    "Warning: Gemini traffic is not proxied "
+    "(google-genai ignores base URL env vars)."
+)
+
 
 class ProxyStartError(CngxError):
     """Raised when the local proxy cannot be started or reached."""
@@ -61,6 +66,21 @@ def build_wrap_env(
     env["CNGX_PROXY_HOST"] = host
     env["CNGX_PROXY_PORT"] = str(port)
     return env
+
+
+def should_warn_gemini_not_proxied(
+    command: list[str],
+    env: Optional[dict[str, str]] = None,
+) -> bool:
+    """True when the child looks Gemini-bound or only Gemini keys are set."""
+    env = env if env is not None else dict(os.environ)
+    joined = " ".join(command).lower()
+    if "gemini" in joined:
+        return True
+    has_openai = bool(env.get("OPENAI_API_KEY") or env.get("CNGX_OPENAI_API_KEY"))
+    has_anthropic = bool(env.get("ANTHROPIC_API_KEY"))
+    has_gemini = bool(env.get("GOOGLE_API_KEY") or env.get("GEMINI_API_KEY"))
+    return has_gemini and not has_openai and not has_anthropic
 
 
 def ensure_proxy_running(
@@ -132,6 +152,9 @@ def run_wrap(
         raise typer.Exit(1) from exc
 
     env = build_wrap_env(host=host, port=port)
+    if should_warn_gemini_not_proxied(command, env):
+        console.print(f"[yellow]{GEMINI_NOT_PROXIED}[/]")
+
     root = proxy_root_url(host, port)
     console.print(
         f"[dim]cngx wrap → {root} "
@@ -150,20 +173,20 @@ def run_wrap(
 
 def run_wrap_cli(
     ctx: typer.Context,
-    port: int = typer.Option(DEFAULT_PORT, "--port", "-p", help="Local proxy port"),
-    host: str = typer.Option(DEFAULT_HOST, "--host", help="Local proxy host"),
+    port: int = typer.Option(DEFAULT_PORT, "--port", "-p", help="Proxy port (default 8642)"),
+    host: str = typer.Option(DEFAULT_HOST, "--host", help="Proxy host (localhost only)"),
     session_id: Optional[str] = typer.Option(
         None,
         "--session-id",
-        help="Explicit session id for multi-turn trajectory tracking",
+        help="Session id for multi-turn tracking",
     ),
     no_start_proxy: bool = typer.Option(
         False,
         "--no-start-proxy",
-        help="Fail if the proxy is not already running",
+        help="Require an already-running proxy",
     ),
 ) -> None:
-    """Wrap an agent command with zero-code proxy instrumentation."""
+    """Route an agent CLI through the local proxy. Gemini is not supported."""
     command = list(ctx.args)
     if command and command[0] == "--":
         command = command[1:]
