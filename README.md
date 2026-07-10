@@ -73,13 +73,15 @@ Synthetic draws only. Pin your own baseline on real traffic before treating aler
 | `cngx check -c policy.yaml "…"` | One-shot policy check (CI-friendly exit codes) |
 | `cngx check -c policy.yaml --output-file out.txt` | Gate existing agent output offline |
 | `cngx check ... --evidence-file pytest.log` | Also require a real test log with `N passed` |
-| `cngx wrap -- aider` | Route an agent through the local proxy |
+| `cngx wrap -- aider` | Route an OpenAI/Anthropic agent through the local proxy |
 | `cngx watch` | Live dashboard on proxied traffic |
 | `cngx pin --label baseline` | Save normal behavior for a task |
 | `cngx diff --baseline baseline` | Compare recent captures to that baseline |
 | `cngx submit --baseline baseline` | Opt-in metrics to the [community tracker](https://aadi-joshi.github.io/cngx/) |
 
 Set `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GOOGLE_API_KEY` / `GEMINI_API_KEY` for live providers. Keys stay in memory for forwarding; they are not written to the local database.
+
+Gemini cannot use `cngx wrap` / the proxy: the official google-genai SDK ignores base-URL env vars. Use `cngx check --adapter gemini` (or capture) instead.
 
 ## Local-first
 

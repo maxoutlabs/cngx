@@ -122,20 +122,20 @@ def quickstart() -> None:
 )
 def wrap(
     ctx: typer.Context,
-    port: int = typer.Option(8642, "--port", "-p", help="Local proxy port"),
-    host: str = typer.Option("127.0.0.1", "--host", help="Local proxy host"),
+    port: int = typer.Option(8642, "--port", "-p", help="Proxy port (default 8642)"),
+    host: str = typer.Option("127.0.0.1", "--host", help="Proxy host (localhost only)"),
     session_id: Optional[str] = typer.Option(
         None,
         "--session-id",
-        help="Explicit session id for multi-turn trajectory tracking",
+        help="Session id for multi-turn tracking",
     ),
     no_start_proxy: bool = typer.Option(
         False,
         "--no-start-proxy",
-        help="Fail if the proxy is not already running",
+        help="Require an already-running proxy",
     ),
 ) -> None:
-    """Run an agent command through the local proxy (zero-code instrumentation)."""
+    """Route an agent CLI through the local proxy. Gemini is not supported."""
     from cngx.cli.wrap import run_wrap_cli
 
     run_wrap_cli(

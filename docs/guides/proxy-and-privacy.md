@@ -28,7 +28,7 @@ Provider coverage today (honest limits):
 | Route | Forwarded | Fingerprinted |
 |-------|-----------|---------------|
 | OpenAI `/v1/chat/completions` | Yes | Yes (including streaming) |
-| Anthropic `/v1/messages` | Yes | No (forward-only; analysis skips non-OpenAI) |
+| Anthropic `/v1/messages` | Yes | Yes (including streaming) |
 | Gemini | No proxy route | Use `cngx check` / capture adapters instead |
 
 Implementation: `cngx/proxy/`
@@ -37,7 +37,7 @@ Implementation: `cngx/proxy/`
 
 | Concern | Behavior |
 |---------|----------|
-| Where keys live | Environment variables only (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`) |
+| Where keys live | Environment variables only (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` / `GEMINI_API_KEY`) |
 | Persistence | **Never** written to DuckDB, config files, or logs |
 | Lifetime | In memory for the duration of a single forwarded request |
 | Telemetry | **None**, no phone-home, no analytics |
