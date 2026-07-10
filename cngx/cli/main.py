@@ -12,7 +12,9 @@ from rich.table import Table
 
 from cngx import __version__
 from cngx.cli import capture, demo, diff, drift, gate, history, pin
+from cngx.cli.stdio import configure_cli_stdio
 
+configure_cli_stdio()
 console = Console()
 
 

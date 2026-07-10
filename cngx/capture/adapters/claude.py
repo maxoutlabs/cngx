@@ -22,9 +22,10 @@ from cngx.core.models import ModelConfig, ReasoningTrace, TokenUsage, ToolCall
 _MODEL_ALIASES: dict[str, str] = {
     "opus": "claude-opus-4-20250514",
     "sonnet": "claude-sonnet-4-20250514",
-    "haiku": "claude-haiku-3-20250519",
+    "haiku": "claude-haiku-4-5-20251001",
     "claude-4-opus": "claude-opus-4-20250514",
     "claude-4-sonnet": "claude-sonnet-4-20250514",
+    "claude-4-haiku": "claude-haiku-4-5-20251001",
     "claude-3.5-sonnet": "claude-3-5-sonnet-20241022",
     "claude-3.5-haiku": "claude-3-5-haiku-20241022",
     "claude-3-opus": "claude-3-opus-20240229",
@@ -157,11 +158,15 @@ class ClaudeAdapter(BaseAdapter):
         if tools:
             request_kwargs["tools"] = self._convert_tools(tools)
 
-        # Temperature, top_p, etc.
-        if self.config.temperature is not None:
-            request_kwargs["temperature"] = self.config.temperature
-        if self.config.top_p is not None:
-            request_kwargs["top_p"] = self.config.top_p
+        # Anthropic rejects requests that set both temperature and top_p on
+        # current Haiku/Sonnet models. Prefer temperature; only send top_p
+        # when the caller explicitly opts out of temperature.
+        temp = kwargs.pop("temperature", self.config.temperature)
+        top_p = kwargs.pop("top_p", self.config.top_p)
+        if temp is not None:
+            request_kwargs["temperature"] = temp
+        elif top_p is not None:
+            request_kwargs["top_p"] = top_p
 
         # Pass through any extra kwargs
         request_kwargs.update(kwargs)

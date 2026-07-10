@@ -5,6 +5,15 @@ All notable changes to cngx will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2026-07-10
+
+### Fixed
+- Claude adapter no longer sends both `temperature` and `top_p` (rejected by current Haiku/Sonnet models).
+- Windows `cngx diff` no longer crashes on cp1252 consoles (UTF-8 stdio + ASCII change markers).
+- Diff recommendations no longer claim "no critical issues" when major/critical metric shifts exist.
+
+### Changed
+- Default `haiku` model alias points at `claude-haiku-4-5-20251001`.
 ## [0.1.7] - 2026-07-10
 
 ### Fixed
