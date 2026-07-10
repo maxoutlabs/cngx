@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Docs for `--evidence-file` in the CLI reference, GitHub Action guide, and coding-agent gate guide.
+- When `--evidence-file` passes, the first concrete result line is injected into the gated text so agents that reasoned well but omitted pasting pytest output can still satisfy required patterns.
+- `mkdocs build --strict` CI job.
 
 ## [0.1.4] - 2026-07-10
 
