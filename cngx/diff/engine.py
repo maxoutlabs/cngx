@@ -526,6 +526,17 @@ class DiffEngine:
                 )
 
         if not recommendations:
-            recommendations.append("✅ No critical issues detected - review changes for context")
+            criticalish = [
+                c
+                for c in changes
+                if c.significance in (SignificanceLevel.MAJOR, SignificanceLevel.CRITICAL)
+            ]
+            if criticalish:
+                metrics = ", ".join(sorted({c.metric for c in criticalish}))
+                recommendations.append(
+                    f"Review significant shifts before trusting the new behavior ({metrics})"
+                )
+            else:
+                recommendations.append("No major issues flagged - review changes for context")
 
         return recommendations

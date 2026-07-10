@@ -79,8 +79,8 @@ class DiffFormatter:
         change_symbols = {
             ChangeType.ADDED: "[green]+[/]",
             ChangeType.REMOVED: "[red]-[/]",
-            ChangeType.INCREASED: "[green]↑[/]",
-            ChangeType.DECREASED: "[red]↓[/]",
+            ChangeType.INCREASED: "[green]^[/]",
+            ChangeType.DECREASED: "[red]v[/]",
             ChangeType.CHANGED: "[yellow]~[/]",
             ChangeType.UNCHANGED: "[dim]=[/]",
         }
