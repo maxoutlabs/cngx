@@ -110,7 +110,7 @@ cngx check -c examples/contracts/coding_agent_verification.yaml \
 | `--prompt-file` | Task prompt context file (stored on trace, not sent to any API) |
 | `--output-file` | Agent output file for offline gating |
 | `--stdin` | Read agent output from stdin for offline gating |
-| `--evidence-file` | CI/test log to cross-check (offline only; must contain e.g. `N passed`) |
+| `--evidence-file` | CI/test log to cross-check (offline only; must contain e.g. `N passed`). Valid logs inject the first result line into the gated text before the policy check |
 | `-m`, `--model` | Model name label (default `mock-model` online, `agent-output` offline) |
 | `-a`, `--adapter` | `mock`, `openai`, `gemini`, `claude` (online capture only) |
 | `-t`, `--task` | Task ID for capture |

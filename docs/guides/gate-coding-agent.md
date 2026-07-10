@@ -46,7 +46,7 @@ cngx check \
   --evidence-file pytest.log
 ```
 
-The evidence file must look like real tool output (for example a pytest log containing `N passed`). In GitHub Actions, set the `evidence-file` input. See [GitHub Action](github-action.md).
+The evidence file must look like real tool output (for example a pytest log containing `N passed`). Bad evidence still blocks immediately. When the log is valid, cngx appends the first matching result line into the text under policy review before fingerprinting, so a well-reasoned writeup that forgot to paste pytest output can still satisfy required result patterns. In GitHub Actions, set the `evidence-file` input. See [GitHub Action](github-action.md).
 
 ## Exit codes
 
