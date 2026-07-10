@@ -66,17 +66,21 @@ class TestOfflineFingerprintAndGate:
         return self.gate.check(fp, self.scenario.contract, trace)
 
     def test_shallow_patch_blocked_at_gate(self):
-        shallow = BAD_OUTPUT.read_text(encoding="utf-8") if BAD_OUTPUT.is_file() else (
-            "Patch: use items[(page - 1) * size : page * size] for 1-based pages. Ready to merge."
+        shallow = (
+            BAD_OUTPUT.read_text(encoding="utf-8")
+            if BAD_OUTPUT.is_file()
+            else (
+                "Patch: use items[(page - 1) * size : page * size] for 1-based pages. Ready to merge."
+            )
         )
         result = self._check_output(shallow)
         assert result.blocked
         assert result.exit_code == 1
 
     def test_verified_patch_passes_or_soft_fails(self):
-        verified = (
-            ROOT / "tests/fixtures/agent_outputs/verified_fix.txt"
-        ).read_text(encoding="utf-8")
+        verified = (ROOT / "tests/fixtures/agent_outputs/verified_fix.txt").read_text(
+            encoding="utf-8"
+        )
         result = self._check_output(verified)
         assert not result.blocked
         assert result.exit_code != 1
