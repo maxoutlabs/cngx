@@ -43,7 +43,7 @@ Python 3.10+. Requires [pipx](https://pipx.pypa.io/) or `pip install cngx`. See 
               └── diff vs pinned baseline (session drift)
 ```
 
-Honest limit: offline policies score the *text* of agent output. An agent that fabricates "12 passed" without running tests can still pass. Pair `cngx check` with real CI artifacts (pytest logs, exit codes) when you need proof of execution.
+Honest limit: offline policies score the *text* of agent output. An agent that fabricates "12 passed" without running tests can still pass text-only checks. Pass `--evidence-file pytest.log` (or wire it in the GitHub Action) so cngx also requires a real tool log with a concrete result line. Pair with CI exit codes when you need proof of execution.
 
 ## Measured (synthetic benchmarks, alpha=0.05)
 
@@ -72,6 +72,7 @@ Synthetic draws only. Pin your own baseline on real traffic before treating aler
 | `cngx quickstart` | Zero-key demo: unverified agent patch blocked |
 | `cngx check -c policy.yaml "…"` | One-shot policy check (CI-friendly exit codes) |
 | `cngx check -c policy.yaml --output-file out.txt` | Gate existing agent output offline |
+| `cngx check ... --evidence-file pytest.log` | Also require a real test log with `N passed` |
 | `cngx wrap -- aider` | Route an agent through the local proxy |
 | `cngx watch` | Live dashboard on proxied traffic |
 | `cngx pin --label baseline` | Save normal behavior for a task |

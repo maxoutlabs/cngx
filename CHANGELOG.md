@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Package metadata description aligned with the coding-agent verification pitch.
 
 ### Added
+- **`--evidence-file`**: offline `cngx check` can cross-check a real pytest/CI log for concrete result lines (`N passed`), raising the bar above narrative claims alone.
 - Honest README note: offline text policies can be gamed by fabricated test claims; pair with CI artifacts for proof.
 
 ## [0.1.3] - 2026-07-10

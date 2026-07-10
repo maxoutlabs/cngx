@@ -280,6 +280,11 @@ def check(
         "--stdin",
         help="Read agent output from stdin for offline gating",
     ),
+    evidence_file: Optional[Path] = typer.Option(
+        None,
+        "--evidence-file",
+        help="CI/test log to cross-check (must contain e.g. 'N passed'); offline only",
+    ),
     model: str = typer.Option("mock-model", "--model", "-m"),
     adapter: str = typer.Option("mock", "--adapter", "-a"),
     task_id: str = typer.Option("policy_check", "--task", "-t"),
@@ -291,6 +296,7 @@ def check(
     requires (tests, repro steps, explicit checks)? CI-friendly exit codes.
 
     Pass --output-file or --stdin to gate existing agent output without calling a provider.
+    Pass --evidence-file with a real pytest/CI log to raise the bar above narrative claims.
 
     For continued agent runs, use watch, pin, and diff to detect session-level drift.
     """
@@ -304,6 +310,7 @@ def check(
             prompt_file=prompt_file,
             output_file=output_file,
             stdin=stdin,
+            evidence_file=evidence_file,
             model=model,
             adapter=adapter,
             task_id=task_id,
