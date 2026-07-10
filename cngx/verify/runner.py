@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import time
@@ -28,22 +29,33 @@ class RunResult:
 def run_command(command: list[str], timeout: float = 600.0, cwd: str | None = None) -> RunResult:
     """Execute command, capturing stdout and stderr.
 
-    Runs the argument list directly. If the executable is not found on PATH
-    (common on Windows for shell builtins like npm.cmd), retries via the shell.
+    Resolves the executable on PATH and runs the argument list directly, never
+    through a shell, so the command is not re-parsed. On Windows, ``.cmd`` and
+    ``.bat`` wrappers (for example ``npm``) are run via ``cmd /c`` since Windows
+    cannot execute them without a command interpreter.
     """
     if not command:
         raise ValueError("empty command")
 
     start = time.monotonic()
-    use_shell = False
     exe = shutil.which(command[0])
     if exe is None:
-        use_shell = True
+        return RunResult(
+            command=command,
+            exit_code=127,
+            stdout="",
+            stderr=f"command not found: {command[0]}",
+            duration=time.monotonic() - start,
+        )
+
+    resolved = [exe, *command[1:]]
+    if os.name == "nt" and exe.lower().endswith((".cmd", ".bat")):
+        resolved = ["cmd", "/c", *resolved]
 
     try:
-        proc = subprocess.run(
-            subprocess.list2cmdline(command) if use_shell else command,
-            shell=use_shell,
+        proc = subprocess.run(  # noqa: S603
+            resolved,
+            shell=False,
             capture_output=True,
             text=True,
             encoding="utf-8",
