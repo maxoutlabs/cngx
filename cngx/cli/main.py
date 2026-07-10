@@ -107,9 +107,8 @@ def init(
             f"[green]OK[/] Ready at {cngx_path.resolve()}\n\n"
             "[bold]Try next:[/]\n"
             "  [cyan]cngx quickstart[/]  30-second demo, no API keys\n"
-            "  [cyan]cngx wrap -- aider[/]  zero-code agent instrumentation\n"
-            "  [cyan]cngx watch[/]       live dashboard\n"
-            "  [cyan]cngx pin --label baseline[/]  pin recent behavior",
+            "  [cyan]cngx verify --output-file agent.md -- pytest[/]  gate an agent claim\n"
+            "  [dim]advanced:[/] [cyan]cngx wrap -- aider[/] / [cyan]cngx watch[/]  session drift",
             title="[bold]cngx[/]",
         )
     )
