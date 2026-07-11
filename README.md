@@ -9,6 +9,8 @@
 
 AI agents (Cursor, Claude Code, Codex, aider, Cline, PR bots) end almost every task with a confident summary: *"Fixed it, all tests pass, ready to merge."* They usually did not run anything. cngx reads that claim, runs the real checks, and compares. The verdict is bound to actual command output, so it cannot be satisfied by prose.
 
+**Codecov for agent verification claims.** Codecov gates merges on real coverage, not what someone wrote in the PR. cngx gates trust on real command output, not what the agent wrote in chat.
+
 ```bash
 pipx install cngx
 cngx quickstart          # 30s, no API keys, no setup
