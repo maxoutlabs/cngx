@@ -5,18 +5,18 @@ Add a small badge to show your project runs cngx policy checks. It links to the 
 ## Shields.io (simplest)
 
 ```markdown
-[![Monitored by cngx](https://img.shields.io/badge/Monitored%20by-cngx-22c55e?style=flat-square)](https://github.com/teammaxout/cngx)
+[![Monitored by cngx](https://img.shields.io/badge/Monitored%20by-cngx-22c55e?style=flat-square)](https://github.com/maxoutlabs/cngx)
 ```
 
-[![Monitored by cngx](https://img.shields.io/badge/Monitored%20by-cngx-22c55e?style=flat-square)](https://github.com/teammaxout/cngx)
+[![Monitored by cngx](https://img.shields.io/badge/Monitored%20by-cngx-22c55e?style=flat-square)](https://github.com/maxoutlabs/cngx)
 
 ## Hosted SVG (monospace style)
 
 ```markdown
-[![Monitored by cngx](https://raw.githubusercontent.com/teammaxout/cngx/main/docs/assets/monitored-by-cngx.svg)](https://github.com/teammaxout/cngx)
+[![Monitored by cngx](https://raw.githubusercontent.com/maxoutlabs/cngx/main/docs/assets/monitored-by-cngx.svg)](https://github.com/maxoutlabs/cngx)
 ```
 
-[![Monitored by cngx](https://raw.githubusercontent.com/teammaxout/cngx/main/docs/assets/monitored-by-cngx.svg)](https://github.com/teammaxout/cngx)
+[![Monitored by cngx](https://raw.githubusercontent.com/maxoutlabs/cngx/main/docs/assets/monitored-by-cngx.svg)](https://github.com/maxoutlabs/cngx)
 
 Source file: `docs/assets/monitored-by-cngx.svg`
 
