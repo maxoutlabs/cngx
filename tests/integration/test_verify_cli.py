@@ -172,3 +172,52 @@ def test_verify_conflicting_claim_sources_is_usage_error(tmp_path):
     assert run_verify(command=[], claim="x", from_commit="HEAD", evidence_file=log) == 2
     assert run_verify(command=[], claim="x", from_pr=True, evidence_file=log) == 2
     assert run_verify(command=[], from_commit="HEAD", from_pr=True, evidence_file=log) == 2
+
+
+def test_cli_verify_help_lists_new_claim_sources():
+    # The real CLI (main.py app) must expose the flags; a prior version wired them into the wrong
+    # module, so `cngx verify --help` didn't show them. Guard against that regression.
+    from typer.testing import CliRunner
+
+    from cngx.cli.main import app
+
+    result = CliRunner().invoke(app, ["verify", "--help"])
+    assert result.exit_code == 0
+    assert "--from-commit" in result.output
+    assert "--from-pr" in result.output
+
+
+def test_cli_verify_from_commit_runs_through_real_app(tmp_path):
+    # Exercise the actual CLI entrypoint end to end (not run_verify directly): --from-commit HEAD
+    # must be parsed as an option, not treated as the shell command.
+    import subprocess
+
+    from typer.testing import CliRunner
+
+    from cngx.cli.main import app
+
+    _init_repo_with_commit(tmp_path, "all tests pass")
+    (tmp_path / "test_ok.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
+    cwd = os.getcwd()
+    os.chdir(tmp_path)
+    try:
+        result = CliRunner().invoke(
+            app, ["verify", "--from-commit", "HEAD", "--", sys.executable, "-m", "pytest", "-q"]
+        )
+    finally:
+        os.chdir(cwd)
+    # Claim (from HEAD) says pass, tests pass -> verified (0). Crucially not a "command not found".
+    assert result.exit_code == 0
+    assert "command" not in result.output.lower() or "not found" not in result.output.lower()
+
+
+def test_cli_verify_conflicting_sources_through_real_app(tmp_path):
+    from typer.testing import CliRunner
+
+    from cngx.cli.main import app
+
+    result = CliRunner().invoke(
+        app, ["verify", "--claim", "x", "--from-pr", "--", sys.executable, "-m", "pytest", "-q"]
+    )
+    assert result.exit_code == 2
+    assert "Conflicting claim sources" in result.output
