@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Optional
@@ -27,11 +28,87 @@ def _autodetect_command(cwd: Path) -> Optional[list[str]]:
     return None
 
 
+def _claim_from_commit(ref: str) -> tuple[str, Optional[int]]:
+    """Read a claim from a git commit message via `git log -1 --pretty=%B REF`.
+
+    An empty ref is treated as HEAD, matching the documented default.
+    """
+    import subprocess
+
+    ref = ref or "HEAD"
+
+    try:
+        result = subprocess.run(
+            ["git", "log", "-1", "--pretty=%B", ref],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError:
+        console.print("[red]git not found on PATH; cannot read --from-commit.[/]")
+        return "", 2
+    if result.returncode != 0:
+        detail = result.stderr.strip() or f"no such commit: {ref}"
+        console.print(f"[red]could not read commit {ref}: {detail}[/]")
+        return "", 2
+    return result.stdout, None
+
+
+def _claim_from_pr() -> tuple[str, Optional[int]]:
+    """Read a claim from the GitHub Actions event payload (.pull_request.body)."""
+    event_path = os.environ.get("GITHUB_EVENT_PATH")
+    if not event_path:
+        console.print(
+            "[red]--from-pr only works inside GitHub Actions[/] (GITHUB_EVENT_PATH is not set)."
+        )
+        return "", 2
+    path = Path(event_path)
+    if not path.is_file():
+        console.print(f"[red]event payload not found: {event_path}[/]")
+        return "", 2
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        console.print(f"[red]could not read event payload: {exc}[/]")
+        return "", 2
+    pull_request = payload.get("pull_request")
+    if not isinstance(pull_request, dict):
+        console.print(
+            "[red]no pull_request in the event payload[/] (is this a pull_request event?)."
+        )
+        return "", 2
+    # A PR with an empty description is valid; the claim is just empty.
+    return pull_request.get("body") or "", None
+
+
 def _read_claim(
     claim: Optional[str],
     output_file: Optional[Path],
     stdin: bool,
+    from_commit: Optional[str],
+    from_pr: bool,
 ) -> tuple[str, Optional[int]]:
+    # Claim sources are mutually exclusive: silent precedence hides operator
+    # mistakes in CI, so more than one selected source is a usage error (exit 2).
+    active = []
+    if claim is not None:
+        active.append("--claim")
+    if output_file is not None:
+        active.append("--output-file")
+    if stdin:
+        active.append("--stdin")
+    if from_commit is not None:
+        active.append("--from-commit")
+    if from_pr:
+        active.append("--from-pr")
+
+    if len(active) > 1:
+        console.print(
+            f"[red]Conflicting claim sources: {', '.join(active)}.[/] "
+            "Pass exactly one of --claim, --output-file, --stdin, --from-commit, --from-pr."
+        )
+        return "", 2
+
     if stdin:
         return sys.stdin.read(), None
     if output_file is not None:
@@ -39,6 +116,10 @@ def _read_claim(
             console.print(f"[red]output-file not found: {output_file}[/]")
             return "", 2
         return output_file.read_text(encoding="utf-8"), None
+    if from_commit is not None:
+        return _claim_from_commit(from_commit)
+    if from_pr:
+        return _claim_from_pr()
     return claim or "", None
 
 
@@ -52,8 +133,13 @@ def run_verify(
     claim: Optional[str] = None,
     output_file: Optional[Path] = None,
     stdin: bool = False,
+    from_commit: Optional[str] = None,
+    from_pr: bool = False,
     evidence_file: Optional[Path] = None,
     require_claim: bool = False,
+    record: bool = False,
+    label: Optional[str] = None,
+    stats: bool = False,
     timeout: float = 600.0,
     json_output: bool = False,
 ) -> int:
@@ -62,7 +148,11 @@ def run_verify(
     from cngx.verify.runner import run_command
     from cngx.verify.verdict import decide
 
-    claim_text, err = _read_claim(claim, output_file, stdin)
+    # `--stats` is a pure read of the local store: no command, no claim, no DB writes.
+    if stats:
+        return _show_stats(json_output=json_output)
+
+    claim_text, err = _read_claim(claim, output_file, stdin, from_commit, from_pr)
     if err is not None:
         return err
     parsed_claim = extract_claim(claim_text)
@@ -107,6 +197,17 @@ def run_verify(
         require_claim=require_claim,
         command_label=command_label,
     )
+
+    # Opt-in recording (issue #43): only when --record or CNGX_VERIFY_RECORD=1. This is the only place
+    # the verify path touches the DB; plain `cngx verify` opens nothing and stays zero-setup.
+    if record or os.getenv("CNGX_VERIFY_RECORD") == "1":
+        _record_outcome(
+            label=label if label is not None else os.getenv("CNGX_VERIFY_LABEL", ""),
+            parsed_claim=parsed_claim,
+            result=result,
+            verdict=verdict,
+            timed_out=timed_out,
+        )
 
     if json_output:
         payload = verdict.to_dict()
@@ -156,12 +257,32 @@ app = typer.Typer()
 def verify(
     ctx: typer.Context,
     claim: Optional[str] = typer.Option(
-        None, "--claim", "-C", help="Agent claim text (what it said it did)"
+        None,
+        "--claim",
+        "-C",
+        help="Agent claim text (what it said it did). Claim sources are mutually exclusive.",
     ),
     output_file: Optional[Path] = typer.Option(
-        None, "--output-file", "-o", help="File with the agent's message to read the claim from"
+        None,
+        "--output-file",
+        "-o",
+        help="File with the agent's message to read the claim from. "
+        "Claim sources are mutually exclusive.",
     ),
     stdin: bool = typer.Option(False, "--stdin", help="Read the agent claim from stdin"),
+    from_commit: Optional[str] = typer.Option(
+        None,
+        "--from-commit",
+        metavar="REF",
+        help="Read the claim from a git commit message, e.g. --from-commit HEAD. "
+        "Claim sources are mutually exclusive.",
+    ),
+    from_pr: bool = typer.Option(
+        False,
+        "--from-pr",
+        help="Read the claim from the GitHub Actions PR event payload. "
+        "Claim sources are mutually exclusive.",
+    ),
     evidence_file: Optional[Path] = typer.Option(
         None, "--evidence-file", "-e", help="Use an existing test log instead of running a command"
     ),
@@ -190,9 +311,104 @@ def verify(
             claim=claim,
             output_file=output_file,
             stdin=stdin,
+            from_commit=from_commit,
+            from_pr=from_pr,
             evidence_file=evidence_file,
             require_claim=require_claim,
             timeout=timeout,
             json_output=json_output,
         )
     )
+
+
+def _record_outcome(
+    *,
+    label: str,
+    parsed_claim,
+    result,
+    verdict,
+    timed_out: bool,
+) -> None:
+    """Persist one verify outcome to the local store (issue #43).
+
+    Best-effort: a storage failure must never break the verify exit code, so problems are reported to
+    stderr and swallowed. Only opens the DB here, never on the default path.
+    """
+    try:
+        from cngx.storage import get_database
+
+        db = get_database()
+        db.record_verify_outcome(
+            label=label or "",
+            claimed_success=bool(parsed_claim.claims_success),
+            real_ok=bool(result.ok),
+            status=verdict.status,
+            timed_out=bool(timed_out),
+            claimed_passed=parsed_claim.claimed_passed,
+            real_passed=result.passed,
+            real_failed=result.failed,
+            framework=result.framework,
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        console.print(f"[yellow]warning:[/] could not record verify outcome: {exc}")
+
+
+def _show_stats(*, json_output: bool) -> int:
+    """Print per-label fabricated-claim stats from the local store (issue #43). Pure read."""
+    from cngx.verify.stats import compute_stats
+
+    try:
+        from cngx.storage import get_database
+
+        db = get_database()
+        outcomes = db.get_verify_outcomes()
+    except Exception as exc:
+        console.print(f"[red]could not read verify outcomes:[/] {exc}")
+        return 2
+
+    stats = compute_stats(outcomes)
+
+    if json_output:
+        print(json.dumps(stats.to_dict(), indent=2))
+        return 0
+
+    if stats.total_runs == 0:
+        console.print(
+            "No recorded verify outcomes yet. Run [cyan]cngx verify --record -- <cmd>[/] "
+            "(or set CNGX_VERIFY_RECORD=1) to start recording."
+        )
+        return 0
+
+    from rich.table import Table
+
+    table = Table(title="Fabricated-claim rate per label")
+    table.add_column("label")
+    table.add_column("runs", justify="right")
+    table.add_column("success claims", justify="right")
+    table.add_column("fabricated", justify="right")
+    table.add_column("rate", justify="right")
+    table.add_column("trend (recent vs prior)", justify="right")
+
+    for ls in stats.labels:
+        rate = "-" if ls.fabricated_rate is None else f"{ls.fabricated_rate:.0%}"
+        if ls.recent_rate is None or ls.prior_rate is None:
+            trend = "-"
+        else:
+            arrow = "→"
+            if ls.recent_rate > ls.prior_rate:
+                arrow = "↑"
+            elif ls.recent_rate < ls.prior_rate:
+                arrow = "↓"
+            trend = f"{ls.prior_rate:.0%} {arrow} {ls.recent_rate:.0%}"
+        table.add_row(
+            ls.label or "(unlabeled)",
+            str(ls.runs),
+            str(ls.success_claims),
+            str(ls.fabricated),
+            rate,
+            trend,
+        )
+
+    # Stats are the command's result, so print to stdout (module `console` is stderr for diagnostics).
+    Console().print(table)
+    return 0
