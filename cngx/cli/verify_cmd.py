@@ -142,6 +142,7 @@ def run_verify(
     stats: bool = False,
     timeout: float = 600.0,
     json_output: bool = False,
+    cwd: Optional[Path] = None,
 ) -> int:
     from cngx.verify.claims import extract_claim
     from cngx.verify.parsers import parse_output
@@ -157,7 +158,11 @@ def run_verify(
         return err
     parsed_claim = extract_claim(claim_text)
 
-    cwd = Path.cwd()
+    if cwd is not None and not cwd.is_dir():
+        console.print(f"[red]--cwd path not found or not a directory: {cwd}[/]")
+        return 2
+    resolved_cwd = cwd if cwd is not None else Path.cwd()
+
     real_output = ""
     timed_out = False
     command_label: Optional[str] = None
@@ -174,7 +179,7 @@ def run_verify(
         command_label = f"log {evidence_file.name}"
     else:
         if not command:
-            command = _autodetect_command(cwd) or []
+            command = _autodetect_command(resolved_cwd) or []
             if not command:
                 console.print(
                     "[red]Nothing to run.[/] Pass the verification command after [cyan]--[/], "
@@ -183,7 +188,7 @@ def run_verify(
                 )
                 return 2
             console.print(f"[dim]auto-detected: {' '.join(command)}[/]")
-        run_result = run_command(command, timeout=timeout, cwd=str(cwd))
+        run_result = run_command(command, timeout=timeout, cwd=str(resolved_cwd))
         real_output = run_result.combined
         timed_out = run_result.timed_out
         result = parse_output(real_output, exit_code=run_result.exit_code)
@@ -291,6 +296,9 @@ def verify(
     ),
     timeout: float = typer.Option(600.0, "--timeout", help="Seconds before the command is killed"),
     json_output: bool = typer.Option(False, "--json", "-j", help="Machine-readable output"),
+    cwd: Optional[Path] = typer.Option(
+        None, "--cwd", help="Run the verification command in this directory"
+    ),
 ) -> None:
     """Run the checks the agent claimed it ran, then compare claim to reality.
 
@@ -317,6 +325,7 @@ def verify(
             require_claim=require_claim,
             timeout=timeout,
             json_output=json_output,
+            cwd=cwd,
         )
     )
 

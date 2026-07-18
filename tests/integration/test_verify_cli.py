@@ -64,6 +64,32 @@ def test_verify_evidence_file_failure(tmp_path):
     assert code == 1
 
 
+def test_verify_cwd_option_runs_in_directory(tmp_path):
+    sub = tmp_path / "subdir"
+    sub.mkdir()
+    claim = _setup(sub, _FIXED)
+    cwd = os.getcwd()
+    os.chdir(tmp_path)
+    try:
+        code = run_verify(
+            command=[sys.executable, "-m", "unittest"],
+            output_file=claim,
+            cwd=sub,
+        )
+    finally:
+        os.chdir(cwd)
+    assert code == 0
+
+
+def test_verify_cwd_option_fails_if_not_dir(tmp_path):
+    code = run_verify(
+        command=[sys.executable, "-m", "unittest"],
+        claim="x",
+        cwd=tmp_path / "nonexistent",
+    )
+    assert code == 2
+
+
 def test_verify_evidence_file_success(tmp_path):
     log = tmp_path / "ci.log"
     log.write_text("=== 5 passed in 0.4s ===", encoding="utf-8")
@@ -188,6 +214,7 @@ def test_cli_verify_exposes_new_claim_source_options():
     option_names = {opt for param in verify_cmd.params for opt in param.opts}
     assert "--from-commit" in option_names
     assert "--from-pr" in option_names
+    assert "--cwd" in option_names
 
 
 def test_cli_verify_from_commit_runs_through_real_app(tmp_path):
