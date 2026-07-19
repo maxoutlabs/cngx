@@ -60,6 +60,7 @@ exit code: 1
 | `--from-pr` | Read the claim from the GitHub Actions PR event body |
 | `-e`, `--evidence-file` | Parse an existing test/CI log instead of running a command |
 | `--require-claim` | Also block if checks pass but the agent made no verification claim |
+| `--cwd PATH` | Run the verification command in this directory |
 | `--record` | Record this run's outcome to the local store (opt-in; see below) |
 | `--label NAME` | Model/agent label for a recorded run; overrides `CNGX_VERIFY_LABEL` |
 | `--stats` | Print recorded fabricated-claim stats per label and exit (pure read) |
