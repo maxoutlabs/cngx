@@ -38,9 +38,22 @@ Claim sources are mutually exclusive; passing more than one is a usage error (ex
 ```bash
 cngx verify --output-file agent_message.md -- pytest -q   # run a command
 cngx verify --output-file agent_message.md --evidence-file pytest.log   # parse an existing log
+cngx verify --output-file agent_message.md   # auto-detect the project's test command
 ```
 
 Use either a command after `--` or `--evidence-file`, not both.
+
+**Auto-detection.** With no command after `--` and no `--evidence-file`, cngx looks for an unambiguous test runner in the working directory and prints the command it chose (`auto-detected: ...`). It checks, in order:
+
+| signal | command |
+|---|---|
+| `package.json` with a real `test` script | `pnpm test` / `yarn test` when the lockfile says so, otherwise `npm test --silent` |
+| `go.mod` | `go test ./...` |
+| `Cargo.toml` | `cargo test` |
+| `Makefile` with a `test` target | `make test` |
+| a `tests/` directory or `test_*.py` / `*_test.py` | `python -m pytest -q` |
+
+The first match wins, so a repository carrying more than one manifest resolves to the earliest row above. Detection is deliberately conservative: a runner is only chosen when its toolchain is actually installed, and the placeholder `test` script that `npm init` writes is ignored. When nothing is unambiguous, cngx exits 2 and asks for the command after `--` rather than guessing.
 
 Example BLOCKED output:
 

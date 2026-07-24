@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import shutil
 import sys
 from pathlib import Path
 from typing import Optional
@@ -15,9 +17,87 @@ from rich.panel import Panel
 console = Console(stderr=True)
 
 
-# Minimal auto-detect: only pytest, and only when it is actually importable in
-# the current environment. Everything else should be passed explicitly with --.
-def _autodetect_command(cwd: Path) -> Optional[list[str]]:
+# Auto-detect the project's test command so a zero-arg `cngx verify` works in common repos.
+#
+# Detection stays deliberately conservative. Each ecosystem needs both an unambiguous manifest
+# signal *and* a toolchain that is actually present, because a detected command that cannot run
+# reports as a blocked verdict -- which reads like failing tests rather than a missing toolchain,
+# the exact kind of misleading result cngx exists to prevent. When nothing is unambiguous, we fall
+# through to the usage error and the user passes the command after `--`.
+
+# npm init writes this placeholder script, which exits 1 by design. Treating it as the project's
+# test command would block every verify in a repo that never set tests up.
+_NPM_PLACEHOLDER = "no test specified"
+
+
+def _detect_node(cwd: Path) -> Optional[list[str]]:
+    """package.json with a real `test` script; the lockfile picks the package manager."""
+    manifest = cwd / "package.json"
+    if not manifest.is_file():
+        return None
+    try:
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    scripts = data.get("scripts")
+    if not isinstance(scripts, dict):
+        return None
+    script = scripts.get("test")
+    if not isinstance(script, str) or not script.strip():
+        return None
+    if _NPM_PLACEHOLDER in script:
+        return None
+
+    if (cwd / "pnpm-lock.yaml").is_file():
+        return ["pnpm", "test"] if shutil.which("pnpm") else None
+    if (cwd / "yarn.lock").is_file():
+        return ["yarn", "test"] if shutil.which("yarn") else None
+    # npm prints its own banner around the script, which would end up in the parsed output.
+    return ["npm", "test", "--silent"] if shutil.which("npm") else None
+
+
+def _detect_go(cwd: Path) -> Optional[list[str]]:
+    if not (cwd / "go.mod").is_file():
+        return None
+    return ["go", "test", "./..."] if shutil.which("go") else None
+
+
+def _detect_cargo(cwd: Path) -> Optional[list[str]]:
+    if not (cwd / "Cargo.toml").is_file():
+        return None
+    return ["cargo", "test"] if shutil.which("cargo") else None
+
+
+def _has_make_test_target(makefile: Path) -> bool:
+    """True when the makefile declares a `test` target.
+
+    Anchoring on the start of the line keeps `.PHONY: test` out, since that names the target
+    without defining it. A trailing `=` means the line is a variable assignment (`test := ...`
+    or `test ::= ...`) rather than a rule.
+    """
+    try:
+        text = makefile.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+    for line in text.splitlines():
+        match = re.match(r"^test\s*:{1,2}(.*)$", line)
+        if match and not match.group(1).lstrip().startswith("="):
+            return True
+    return False
+
+
+def _detect_make(cwd: Path) -> Optional[list[str]]:
+    for name in ("Makefile", "makefile", "GNUmakefile"):
+        candidate = cwd / name
+        if candidate.is_file() and _has_make_test_target(candidate):
+            return ["make", "test"] if shutil.which("make") else None
+    return None
+
+
+def _detect_pytest(cwd: Path) -> Optional[list[str]]:
+    """Unchanged from the original behaviour: pytest, only when importable here."""
     import importlib.util
 
     if importlib.util.find_spec("pytest") is None:
@@ -25,6 +105,20 @@ def _autodetect_command(cwd: Path) -> Optional[list[str]]:
     has_tests = (cwd / "tests").is_dir() or any(cwd.glob("test_*.py")) or any(cwd.glob("*_test.py"))
     if has_tests:
         return [sys.executable, "-m", "pytest", "-q"]
+    return None
+
+
+# Precedence, first match wins. Ordered as listed in the issue: a repo carrying more than one
+# manifest resolves to the earliest entry here, and the chosen command is always printed so the
+# user can see what was picked.
+_DETECTORS = (_detect_node, _detect_go, _detect_cargo, _detect_make, _detect_pytest)
+
+
+def _autodetect_command(cwd: Path) -> Optional[list[str]]:
+    for detect in _DETECTORS:
+        command = detect(cwd)
+        if command:
+            return command
     return None
 
 

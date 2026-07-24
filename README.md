@@ -70,6 +70,17 @@ Local, against the agent's last message:
 cngx verify --output-file agent_message.md -- pytest -q
 ```
 
+Skip the command and let it find your test runner:
+
+```bash
+cngx verify --output-file agent_message.md
+```
+
+With nothing after `--`, cngx looks for an unambiguous signal in the current directory and prints
+what it picked: a `package.json` test script (`npm`, or `pnpm`/`yarn` when the lockfile says so),
+`go.mod`, `Cargo.toml`, a `Makefile` with a `test` target, or pytest. It only auto-detects when the
+toolchain is actually installed, and asks you to pass the command after `--` when nothing is clear.
+
 Pipe the claim in:
 
 ```bash
