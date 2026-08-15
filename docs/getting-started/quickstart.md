@@ -48,6 +48,19 @@ cngx verify --output-file agent_message.md -- npm test
 cngx verify --claim "all green, ready to merge" -- go test ./...
 ```
 
+You can also leave the command out entirely:
+
+```bash
+cngx verify --output-file agent_message.md
+```
+
+cngx then looks for an unambiguous signal in the current directory and prints the command it chose,
+checking in this order: a `package.json` with a real `test` script (using `pnpm` or `yarn` when the
+lockfile indicates, otherwise `npm`), `go.mod`, `Cargo.toml`, a `Makefile` with a `test` target, and
+finally pytest. Detection is conservative on purpose -- it only picks a runner that is actually
+installed, and when nothing is unambiguous it asks you to pass the command after `--` rather than
+guessing.
+
 ## Sources of the claim and reality
 
 The **claim** (what the agent said) comes from one of:
