@@ -61,7 +61,18 @@ Hosted SaaS and marketing-site code from earlier development is not in this repo
 
 `cngx verify` is only as good as its ability to read real test-runner output. Parsers live in `cngx/verify/parsers.py`.
 
-To add support for a new runner (for example rspec, phpunit, dotnet test):
+### Current parser support
+
+The parser registry currently covers pytest, unittest, Jest, Vitest, Cargo, Go test, RSpec, PHPUnit,
+dotnet test/VSTest, Mocha, and Maven Surefire/Gradle output. Check `_PARSERS` before starting work so
+you do not duplicate an existing runner.
+
+### Possible next targets
+
+ExUnit, bats, cucumber, and XCTest are useful optional ideas for future contributions. They are not
+assigned or reserved; open an issue first if the work is larger than a focused parser and test pair.
+
+To add support for a new runner:
 
 1. Add a `_parse_<runner>(text) -> TestResult | None` function. Return `None` when the text is clearly not that runner so the next parser can try.
 2. Register it in the `_PARSERS` tuple. Order matters: more specific formats go before the generic pytest count parser.
